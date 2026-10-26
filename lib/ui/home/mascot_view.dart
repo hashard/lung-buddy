@@ -132,7 +132,7 @@ class _MascotViewState extends State<MascotView>
     return Column(
       children: [
         SizedBox(
-          height: 230,
+          height: 250,
           child: AnimatedBuilder(
             animation: Listenable.merge([_idle, _cough, _flow]),
             builder: (context, _) {
@@ -143,7 +143,7 @@ class _MascotViewState extends State<MascotView>
                   clipBehavior: Clip.none,
                   children: [
                     CustomPaint(
-                      size: const Size(230, 230),
+                      size: const Size(250, 250),
                       painter: LungPainter(
                         smokeRatio: _ratio,
                         coughPhase: _cough.value,

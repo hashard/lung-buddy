@@ -6,6 +6,26 @@ Light-hearted Android app to help you **cut down** on smoking — daily budgets,
 
 - [Design](docs/superpowers/specs/2026-10-23-lung-buddy-design.md)
 - [Implementation plan](docs/superpowers/plans/2026-10-23-lung-buddy.md)
+- [Widget + store pack](docs/superpowers/specs/2026-10-25-widget-store-pack-design.md)
+- [Privacy policy](docs/privacy-policy.md)
+- [Play Store listing copy](docs/play-store-listing.md)
+
+## Home widget (Android)
+
+Plus unlocks live today count + streak on the launcher. Buy Plus → Settings → **Add widget**, or long-press home → Widgets → **Lung Buddy**.
+
+## Release / Play Store
+
+- [Play Console upload](docs/play-console-upload.md) — IAP `lung_buddy_plus`, signing, AAB
+- [Listing copy](docs/play-store-listing.md)
+- Privacy site: `privacy-site/` (deploy to Vercel)
+
+```powershell
+powershell -File tool/create_upload_keystore.ps1   # once
+$env:PUB_CACHE = "C:\dev\pub-cache"
+cd C:\dev\lung-buddy
+flutter build appbundle --release
+```
 
 ## Run
 

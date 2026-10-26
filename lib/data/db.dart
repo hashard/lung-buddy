@@ -34,6 +34,9 @@ class Settings extends Table {
   BoolColumn get isPlus => boolean().withDefault(const Constant(false))();
   TextColumn get equippedCosmeticId =>
       text().withDefault(const Constant('none'))();
+  BoolColumn get remindersEnabled =>
+      boolean().withDefault(const Constant(false))();
+  IntColumn get reminderHour => integer().withDefault(const Constant(20))();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -66,7 +69,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -79,6 +82,10 @@ class AppDatabase extends _$AppDatabase {
           if (from < 3) {
             await m.addColumn(settings, settings.isPlus);
             await m.addColumn(settings, settings.equippedCosmeticId);
+          }
+          if (from < 4) {
+            await m.addColumn(settings, settings.remindersEnabled);
+            await m.addColumn(settings, settings.reminderHour);
           }
         },
       );

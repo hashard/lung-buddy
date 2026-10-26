@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'providers/database_provider.dart';
+import 'services/buddy_widget_sync.dart';
 import 'theme/app_theme.dart';
 import 'ui/challenges/challenges_screen.dart';
 import 'ui/closet/closet_screen.dart';
@@ -75,11 +76,44 @@ final routerProvider = Provider<GoRouter>((ref) {
   );
 });
 
-class LungBuddyApp extends ConsumerWidget {
+class LungBuddyApp extends ConsumerStatefulWidget {
   const LungBuddyApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<LungBuddyApp> createState() => _LungBuddyAppState();
+}
+
+class _LungBuddyAppState extends ConsumerState<LungBuddyApp>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _syncWidget());
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _syncWidget();
+    }
+  }
+
+  Future<void> _syncWidget() async {
+    await BuddyWidgetSync.syncFromRepos(
+      settingsRepo: ref.read(settingsRepositoryProvider),
+      smokeRepo: ref.read(smokeRepositoryProvider),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final router = ref.watch(routerProvider);
     return MaterialApp.router(
       title: 'Lung Buddy',

@@ -95,6 +95,18 @@ class SettingsRepository {
     );
   }
 
+  Future<void> setReminders({
+    required bool enabled,
+    required int hour,
+  }) async {
+    await (_db.update(_db.settings)..where((t) => t.id.equals(1))).write(
+      SettingsCompanion(
+        remindersEnabled: Value(enabled),
+        reminderHour: Value(hour.clamp(0, 23)),
+      ),
+    );
+  }
+
   Future<void> setBudgetForDate(DateTime date, int limit) async {
     await _db.into(_db.dailyBudgets).insertOnConflictUpdate(
           DailyBudgetsCompanion.insert(

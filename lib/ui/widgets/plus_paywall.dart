@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../providers/plus_providers.dart';
+import '../../providers/billing_providers.dart';
 import '../../theme/app_theme.dart';
 import 'cartoon_chrome.dart';
 
@@ -49,13 +49,15 @@ class PlusPaywallCard extends ConsumerWidget {
           Text(blurb, style: Theme.of(context).textTheme.bodyMedium),
           const SizedBox(height: 16),
           BoomButton(
-            label: 'UNLOCK PLUS (TEST)',
+            label: 'BUY PLUS',
             onPressed: () async {
-              await ref.read(plusActionsProvider).unlockPlusPlaceholder();
+              final msg = await ref.read(billingActionsProvider).buyPlus();
               if (!context.mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Plus on! Stats, recap & closet unlocked.'),
+                SnackBar(
+                  content: Text(
+                    msg ?? 'Purchase started — Plus unlocks when paid.',
+                  ),
                 ),
               );
             },

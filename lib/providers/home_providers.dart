@@ -10,6 +10,7 @@ import '../domain/mascot_mood.dart';
 import '../domain/models.dart';
 import '../domain/streak_calculator.dart';
 import '../l10n/copy.dart';
+import '../services/buddy_widget_sync.dart';
 import 'database_provider.dart';
 
 class HomeVm {
@@ -186,6 +187,10 @@ class SmokeActions {
     _ref.invalidate(homeVmProvider);
     _ref.invalidate(weekMoneyProvider);
     _ref.invalidate(progressDaysProvider);
+    await BuddyWidgetSync.syncFromRepos(
+      settingsRepo: _ref.read(settingsRepositoryProvider),
+      smokeRepo: _ref.read(smokeRepositoryProvider),
+    );
   }
 
   Future<bool> undo() async {
@@ -194,6 +199,10 @@ class SmokeActions {
     _ref.invalidate(homeVmProvider);
     _ref.invalidate(weekMoneyProvider);
     _ref.invalidate(progressDaysProvider);
+    await BuddyWidgetSync.syncFromRepos(
+      settingsRepo: _ref.read(settingsRepositoryProvider),
+      smokeRepo: _ref.read(smokeRepositoryProvider),
+    );
     return ok;
   }
 }

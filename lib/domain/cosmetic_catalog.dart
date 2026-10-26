@@ -198,6 +198,23 @@ class CosmeticCatalog {
       unlock: CosmeticUnlock.challenge,
       accent: Color(0xFFFF6BB5),
     ),
+    CosmeticDef(
+      id: 'leaf_pin',
+      name: 'Lucky leaf',
+      blurb: 'Quest: Ten-day tidy.',
+      kind: CosmeticKind.prop,
+      unlock: CosmeticUnlock.challenge,
+      accent: Color(0xFF7DFFB3),
+    ),
+    CosmeticDef(
+      id: 'star_stud',
+      name: 'Side star',
+      blurb: 'Earn with a 90-day streak.',
+      kind: CosmeticKind.prop,
+      unlock: CosmeticUnlock.streak,
+      streakRequired: 90,
+      accent: Color(0xFFFFE566),
+    ),
     // Plus exclusive (also unlocked by purchasing Plus = all)
     CosmeticDef(
       id: 'golden_crown',
@@ -246,6 +263,14 @@ class CosmeticCatalog {
       kind: CosmeticKind.glasses,
       unlock: CosmeticUnlock.plusExclusive,
       accent: Color(0xFF2B2433),
+    ),
+    CosmeticDef(
+      id: 'sparkle_aura',
+      name: 'Sparkle aura',
+      blurb: 'Plus exclusive shimmer.',
+      kind: CosmeticKind.prop,
+      unlock: CosmeticUnlock.plusExclusive,
+      accent: Color(0xFFFFE566),
     ),
   ];
 

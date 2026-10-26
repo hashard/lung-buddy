@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../domain/cosmetic_catalog.dart';
 import '../domain/cosmetic_unlocks.dart';
+import '../services/buddy_widget_sync.dart';
 import 'database_provider.dart';
 import 'home_providers.dart';
 
@@ -56,6 +57,10 @@ class PlusActions {
     _ref.invalidate(homeVmProvider);
     _ref.invalidate(weekMoneyProvider);
     _ref.invalidate(progressDaysProvider);
+    await BuddyWidgetSync.syncFromRepos(
+      settingsRepo: _ref.read(settingsRepositoryProvider),
+      smokeRepo: _ref.read(smokeRepositoryProvider),
+    );
   }
 
   Future<void> clearPlusPlaceholder() async {
@@ -78,6 +83,10 @@ class PlusActions {
     _ref.invalidate(homeVmProvider);
     _ref.invalidate(weekMoneyProvider);
     _ref.invalidate(progressDaysProvider);
+    await BuddyWidgetSync.syncFromRepos(
+      settingsRepo: _ref.read(settingsRepositoryProvider),
+      smokeRepo: _ref.read(smokeRepositoryProvider),
+    );
   }
 
   Future<void> equip(CosmeticDef item) async {

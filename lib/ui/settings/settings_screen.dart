@@ -11,8 +11,12 @@ import '../../domain/day_evaluator.dart';
 import '../../providers/challenge_providers.dart';
 import '../../providers/database_provider.dart';
 import '../../providers/home_providers.dart';
+import '../../providers/billing_providers.dart';
 import '../../providers/plus_providers.dart';
+import '../../providers/reminder_providers.dart';
+import '../../services/buddy_widget_sync.dart';
 import '../../theme/app_theme.dart';
+import '../widgets/cartoon_chrome.dart';
 import '../widgets/plus_paywall.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -27,6 +31,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   int? _defaultBudget;
   final _packCostController = TextEditingController();
   int _cigsPerPack = 20;
+  bool _remindersEnabled = false;
+  int _reminderHour = 20;
   bool _loading = true;
 
   @override
@@ -53,6 +59,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         settings.packCost == settings.packCost.roundToDouble() ? 0 : 2,
       );
       _cigsPerPack = settings.cigsPerPack;
+      _remindersEnabled = settings.remindersEnabled;
+      _reminderHour = settings.reminderHour;
       _loading = false;
     });
   }
@@ -96,6 +104,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       .setBudgetForDate(DateTime.now(), _todayBudget!);
                   ref.invalidate(homeVmProvider);
                   ref.invalidate(progressDaysProvider);
+                  await BuddyWidgetSync.syncFromRepos(
+                    settingsRepo: ref.read(settingsRepositoryProvider),
+                    smokeRepo: ref.read(smokeRepositoryProvider),
+                  );
                   messenger.showSnackBar(
                     const SnackBar(content: Text('Today\'s budget updated')),
                   );
@@ -193,7 +205,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ListTile(
             title: const Text('Lung Buddy Plus'),
             subtitle: const Text(
-              'Unlocks all cosmetics, stats, weekly recap, and home widget. Billing placeholder for now.',
+              'Unlocks all cosmetics, stats, weekly recap, and home widget (~\$6.99).',
             ),
             trailing: const Icon(Icons.workspace_premium_outlined),
             onTap: () => context.push('/closet'),
@@ -202,20 +214,94 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             builder: (context, ref, _) {
               final plus = ref.watch(plusStateProvider).valueOrNull;
               if (plus == null) return const SizedBox.shrink();
-              return SwitchListTile(
-                title: Text(plus.isPlus ? 'Plus unlocked (test)' : 'Plus locked'),
-                subtitle: const Text('Toggle for testing before Play Billing'),
-                value: plus.isPlus,
-                onChanged: (v) async {
-                  if (v) {
-                    await ref.read(plusActionsProvider).unlockPlusPlaceholder();
-                  } else {
-                    await ref.read(plusActionsProvider).clearPlusPlaceholder();
-                  }
-                },
+              if (plus.isPlus) {
+                return Column(
+                  children: [
+                    const ListTile(
+                      title: Text('Plus active'),
+                      subtitle: Text('Thanks for supporting the buddy.'),
+                      leading: Icon(Icons.verified_rounded),
+                    ),
+                    TextButton(
+                      onPressed: () =>
+                          ref.read(billingActionsProvider).restore(),
+                      child: const Text('Restore purchases'),
+                    ),
+                  ],
+                );
+              }
+              return Column(
+                children: [
+                  BoomButton(
+                    label: 'BUY PLUS',
+                    onPressed: () async {
+                      final msg =
+                          await ref.read(billingActionsProvider).buyPlus();
+                      if (!context.mounted) return;
+                      if (msg != null) {
+                        messenger.showSnackBar(SnackBar(content: Text(msg)));
+                      }
+                    },
+                  ),
+                  TextButton(
+                    onPressed: () =>
+                        ref.read(billingActionsProvider).restore(),
+                    child: const Text('Restore purchases'),
+                  ),
+                ],
               );
             },
           ),
+          const SizedBox(height: 8),
+          SwitchListTile(
+            title: const Text('Daily reminder'),
+            subtitle: Text(
+              _remindersEnabled
+                  ? 'Nudge around ${_reminderHour.toString().padLeft(2, '0')}:00'
+                  : 'Off — local notification only',
+            ),
+            value: _remindersEnabled,
+            onChanged: (v) async {
+              setState(() => _remindersEnabled = v);
+              await ref.read(reminderActionsProvider).setReminders(
+                    enabled: v,
+                    hour: _reminderHour,
+                  );
+            },
+          ),
+          if (_remindersEnabled)
+            Row(
+              children: [
+                const Text('Hour'),
+                const Spacer(),
+                IconButton(
+                  onPressed: _reminderHour > 0
+                      ? () async {
+                          setState(() => _reminderHour--);
+                          await ref.read(reminderActionsProvider).setReminders(
+                                enabled: true,
+                                hour: _reminderHour,
+                              );
+                        }
+                      : null,
+                  icon: const Icon(Icons.remove),
+                ),
+                Text('$_reminderHour:00',
+                    style: Theme.of(context).textTheme.titleLarge),
+                IconButton(
+                  onPressed: _reminderHour < 23
+                      ? () async {
+                          setState(() => _reminderHour++);
+                          await ref.read(reminderActionsProvider).setReminders(
+                                enabled: true,
+                                hour: _reminderHour,
+                              );
+                        }
+                      : null,
+                  icon: const Icon(Icons.add),
+                ),
+              ],
+            ),
           const SizedBox(height: 8),
           Consumer(
             builder: (context, ref, _) {
@@ -225,7 +311,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 return const PlusPaywallCard(
                   title: 'HOME SCREEN WIDGET',
                   blurb:
-                      'Buddy on your home screen — today\'s count, streak chip, and a tiny cough. Plus feature (coming with real Android widget glue).',
+                      'Live today count + streak on your home screen. Unlock Plus, then add the widget.',
                   icon: Icons.widgets_rounded,
                 );
               }
@@ -246,8 +332,35 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'Plus unlocked. Widget glue lands next — for now this is your reserved slot.',
+                      'Plus unlocked. Long-press your home screen → Widgets → Lung Buddy. '
+                      'Or tap below if your launcher supports pin prompts.',
                       style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                    const SizedBox(height: 12),
+                    BoomButton(
+                      label: 'ADD WIDGET',
+                      onPressed: () async {
+                        try {
+                          await BuddyWidgetSync.syncFromRepos(
+                            settingsRepo:
+                                ref.read(settingsRepositoryProvider),
+                            smokeRepo: ref.read(smokeRepositoryProvider),
+                          );
+                          await BuddyWidgetSync.requestPin();
+                          if (!context.mounted) return;
+                          messenger.showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'If nothing popped up: long-press home → Widgets → Lung Buddy',
+                              ),
+                            ),
+                          );
+                        } catch (e) {
+                          messenger.showSnackBar(
+                            SnackBar(content: Text('Widget pin failed: $e')),
+                          );
+                        }
+                      },
                     ),
                   ],
                 ),

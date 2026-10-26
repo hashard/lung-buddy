@@ -23,6 +23,12 @@ migrate_working_dir/
 # is commented out by default.
 #.vscode/
 
+# Release signing (never commit)
+android/key.properties
+android/upload-keystore.jks
+*.jks
+*.keystore
+
 # Flutter/Dart/Pub related
 **/doc/api/
 **/ios/Flutter/.last_build_id
@@ -32,6 +38,7 @@ migrate_working_dir/
 .pub/
 /build/
 /coverage/
+tool/cosmetic_previews/
 
 # Symbolication related
 app.*.symbols

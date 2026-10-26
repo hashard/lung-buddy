@@ -82,6 +82,14 @@ class ChallengeCatalog {
       targetDays: 3,
       rewardId: 'heart_specs',
     ),
+    ChallengeDef(
+      id: 'under_budget_10',
+      title: 'Ten-day tidy',
+      description: 'Stay at or under budget for 10 days.',
+      kind: ChallengeKind.underBudgetForDays,
+      targetDays: 10,
+      rewardId: 'leaf_pin',
+    ),
   ];
 
   static ChallengeDef? byId(String id) {

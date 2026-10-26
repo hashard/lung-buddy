@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/cosmetic_catalog.dart';
+import '../../providers/billing_providers.dart';
 import '../../providers/plus_providers.dart';
 import '../../theme/app_theme.dart';
 import '../home/lung_painter.dart';
@@ -75,15 +76,16 @@ class ClosetScreen extends ConsumerWidget {
                 if (!plus.isPlus) ...[
                   const SizedBox(height: 12),
                   BoomButton(
-                    label: 'UNLOCK ALL (PLUS TEST)',
+                    label: 'BUY PLUS — UNLOCK ALL',
                     onPressed: () async {
-                      await ref
-                          .read(plusActionsProvider)
-                          .unlockPlusPlaceholder();
+                      final msg =
+                          await ref.read(billingActionsProvider).buyPlus();
                       if (!context.mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Plus on! Whole closet unlocked.'),
+                        SnackBar(
+                          content: Text(
+                            msg ?? 'Purchase started — Plus unlocks when paid.',
+                          ),
                         ),
                       );
                     },

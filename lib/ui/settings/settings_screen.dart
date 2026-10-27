@@ -107,6 +107,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   await BuddyWidgetSync.syncFromRepos(
                     settingsRepo: ref.read(settingsRepositoryProvider),
                     smokeRepo: ref.read(smokeRepositoryProvider),
+                    challengeRepo: ref.read(challengeRepositoryProvider),
                   );
                   messenger.showSnackBar(
                     const SnackBar(content: Text('Today\'s budget updated')),
@@ -345,6 +346,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             settingsRepo:
                                 ref.read(settingsRepositoryProvider),
                             smokeRepo: ref.read(smokeRepositoryProvider),
+                            challengeRepo:
+                                ref.read(challengeRepositoryProvider),
                           );
                           await BuddyWidgetSync.requestPin();
                           if (!context.mounted) return;

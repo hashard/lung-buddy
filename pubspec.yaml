@@ -38,11 +38,13 @@ flutter_launcher_icons:
   android: true
   ios: true
   remove_alpha_ios: true
-  image_path: assets/mascot/happy.png
+  image_path: assets/branding/app_icon.png
   adaptive_icon_background: "#FFF0F6"
-  adaptive_icon_foreground: assets/mascot/happy.png
+  adaptive_icon_foreground: assets/branding/app_icon_foreground.png
+  adaptive_icon_foreground_inset: 16
 
 flutter:
   uses-material-design: true
   assets:
     - assets/mascot/
+    - assets/branding/

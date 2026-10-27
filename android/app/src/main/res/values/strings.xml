@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="buddy_widget_description">Today\'s count, budget, and streak for your lung buddy.</string>
+    <string name="buddy_widget_description">Lung Buddy, today\'s count, and a quick I smoked button.</string>
+    <string name="buddy_widget_smoke">I smoked</string>
+    <string name="buddy_widget_buddy_cd">Lung Buddy</string>
 </resources>

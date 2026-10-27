@@ -31,6 +31,7 @@ final billingBootstrapProvider = FutureProvider<void>((ref) async {
       await BuddyWidgetSync.syncFromRepos(
         settingsRepo: ref.read(settingsRepositoryProvider),
         smokeRepo: ref.read(smokeRepositoryProvider),
+        challengeRepo: ref.read(challengeRepositoryProvider),
       );
     },
   );

@@ -6,6 +6,7 @@ import '../../l10n/money_format.dart';
 import '../../providers/home_providers.dart';
 import '../../theme/app_theme.dart';
 import '../widgets/cartoon_chrome.dart';
+import '../widgets/plus_paywall.dart';
 import 'mascot_view.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -20,9 +21,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Future<void> _logSmoke() async {
     setState(() => _coughPulse = true);
-    await ref.read(smokeActionsProvider).log();
+    final showNudge = await ref.read(smokeActionsProvider).log();
     await Future<void>.delayed(const Duration(milliseconds: 80));
-    if (mounted) setState(() => _coughPulse = false);
+    if (!mounted) return;
+    setState(() => _coughPulse = false);
+    if (showNudge) {
+      await showPlusNudgeSheet(context, ref);
+    }
   }
 
   @override

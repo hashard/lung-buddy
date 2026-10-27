@@ -556,6 +556,21 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
     requiredDuringInsert: false,
     defaultValue: const Constant(20),
   );
+  static const VerificationMeta _plusNudgeShownMeta = const VerificationMeta(
+    'plusNudgeShown',
+  );
+  @override
+  late final GeneratedColumn<bool> plusNudgeShown = GeneratedColumn<bool>(
+    'plus_nudge_shown',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("plus_nudge_shown" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -570,6 +585,7 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
     equippedCosmeticId,
     remindersEnabled,
     reminderHour,
+    plusNudgeShown,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -677,6 +693,15 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
         ),
       );
     }
+    if (data.containsKey('plus_nudge_shown')) {
+      context.handle(
+        _plusNudgeShownMeta,
+        plusNudgeShown.isAcceptableOrUnknown(
+          data['plus_nudge_shown']!,
+          _plusNudgeShownMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -734,6 +759,10 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
         DriftSqlType.int,
         data['${effectivePrefix}reminder_hour'],
       )!,
+      plusNudgeShown: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}plus_nudge_shown'],
+      )!,
     );
   }
 
@@ -756,6 +785,9 @@ class Setting extends DataClass implements Insertable<Setting> {
   final String equippedCosmeticId;
   final bool remindersEnabled;
   final int reminderHour;
+
+  /// Soft Plus sheet after the 3rd lifetime smoke — shown at most once.
+  final bool plusNudgeShown;
   const Setting({
     required this.id,
     required this.usualBaseline,
@@ -769,6 +801,7 @@ class Setting extends DataClass implements Insertable<Setting> {
     required this.equippedCosmeticId,
     required this.remindersEnabled,
     required this.reminderHour,
+    required this.plusNudgeShown,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -785,6 +818,7 @@ class Setting extends DataClass implements Insertable<Setting> {
     map['equipped_cosmetic_id'] = Variable<String>(equippedCosmeticId);
     map['reminders_enabled'] = Variable<bool>(remindersEnabled);
     map['reminder_hour'] = Variable<int>(reminderHour);
+    map['plus_nudge_shown'] = Variable<bool>(plusNudgeShown);
     return map;
   }
 
@@ -802,6 +836,7 @@ class Setting extends DataClass implements Insertable<Setting> {
       equippedCosmeticId: Value(equippedCosmeticId),
       remindersEnabled: Value(remindersEnabled),
       reminderHour: Value(reminderHour),
+      plusNudgeShown: Value(plusNudgeShown),
     );
   }
 
@@ -825,6 +860,7 @@ class Setting extends DataClass implements Insertable<Setting> {
       ),
       remindersEnabled: serializer.fromJson<bool>(json['remindersEnabled']),
       reminderHour: serializer.fromJson<int>(json['reminderHour']),
+      plusNudgeShown: serializer.fromJson<bool>(json['plusNudgeShown']),
     );
   }
   @override
@@ -843,6 +879,7 @@ class Setting extends DataClass implements Insertable<Setting> {
       'equippedCosmeticId': serializer.toJson<String>(equippedCosmeticId),
       'remindersEnabled': serializer.toJson<bool>(remindersEnabled),
       'reminderHour': serializer.toJson<int>(reminderHour),
+      'plusNudgeShown': serializer.toJson<bool>(plusNudgeShown),
     };
   }
 
@@ -859,6 +896,7 @@ class Setting extends DataClass implements Insertable<Setting> {
     String? equippedCosmeticId,
     bool? remindersEnabled,
     int? reminderHour,
+    bool? plusNudgeShown,
   }) => Setting(
     id: id ?? this.id,
     usualBaseline: usualBaseline ?? this.usualBaseline,
@@ -872,6 +910,7 @@ class Setting extends DataClass implements Insertable<Setting> {
     equippedCosmeticId: equippedCosmeticId ?? this.equippedCosmeticId,
     remindersEnabled: remindersEnabled ?? this.remindersEnabled,
     reminderHour: reminderHour ?? this.reminderHour,
+    plusNudgeShown: plusNudgeShown ?? this.plusNudgeShown,
   );
   Setting copyWithCompanion(SettingsCompanion data) {
     return Setting(
@@ -903,6 +942,9 @@ class Setting extends DataClass implements Insertable<Setting> {
       reminderHour: data.reminderHour.present
           ? data.reminderHour.value
           : this.reminderHour,
+      plusNudgeShown: data.plusNudgeShown.present
+          ? data.plusNudgeShown.value
+          : this.plusNudgeShown,
     );
   }
 
@@ -920,7 +962,8 @@ class Setting extends DataClass implements Insertable<Setting> {
           ..write('isPlus: $isPlus, ')
           ..write('equippedCosmeticId: $equippedCosmeticId, ')
           ..write('remindersEnabled: $remindersEnabled, ')
-          ..write('reminderHour: $reminderHour')
+          ..write('reminderHour: $reminderHour, ')
+          ..write('plusNudgeShown: $plusNudgeShown')
           ..write(')'))
         .toString();
   }
@@ -939,6 +982,7 @@ class Setting extends DataClass implements Insertable<Setting> {
     equippedCosmeticId,
     remindersEnabled,
     reminderHour,
+    plusNudgeShown,
   );
   @override
   bool operator ==(Object other) =>
@@ -955,7 +999,8 @@ class Setting extends DataClass implements Insertable<Setting> {
           other.isPlus == this.isPlus &&
           other.equippedCosmeticId == this.equippedCosmeticId &&
           other.remindersEnabled == this.remindersEnabled &&
-          other.reminderHour == this.reminderHour);
+          other.reminderHour == this.reminderHour &&
+          other.plusNudgeShown == this.plusNudgeShown);
 }
 
 class SettingsCompanion extends UpdateCompanion<Setting> {
@@ -971,6 +1016,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
   final Value<String> equippedCosmeticId;
   final Value<bool> remindersEnabled;
   final Value<int> reminderHour;
+  final Value<bool> plusNudgeShown;
   const SettingsCompanion({
     this.id = const Value.absent(),
     this.usualBaseline = const Value.absent(),
@@ -984,6 +1030,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     this.equippedCosmeticId = const Value.absent(),
     this.remindersEnabled = const Value.absent(),
     this.reminderHour = const Value.absent(),
+    this.plusNudgeShown = const Value.absent(),
   });
   SettingsCompanion.insert({
     this.id = const Value.absent(),
@@ -998,6 +1045,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     this.equippedCosmeticId = const Value.absent(),
     this.remindersEnabled = const Value.absent(),
     this.reminderHour = const Value.absent(),
+    this.plusNudgeShown = const Value.absent(),
   }) : usualBaseline = Value(usualBaseline),
        defaultBudget = Value(defaultBudget);
   static Insertable<Setting> custom({
@@ -1013,6 +1061,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     Expression<String>? equippedCosmeticId,
     Expression<bool>? remindersEnabled,
     Expression<int>? reminderHour,
+    Expression<bool>? plusNudgeShown,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1028,6 +1077,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
         'equipped_cosmetic_id': equippedCosmeticId,
       if (remindersEnabled != null) 'reminders_enabled': remindersEnabled,
       if (reminderHour != null) 'reminder_hour': reminderHour,
+      if (plusNudgeShown != null) 'plus_nudge_shown': plusNudgeShown,
     });
   }
 
@@ -1044,6 +1094,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     Value<String>? equippedCosmeticId,
     Value<bool>? remindersEnabled,
     Value<int>? reminderHour,
+    Value<bool>? plusNudgeShown,
   }) {
     return SettingsCompanion(
       id: id ?? this.id,
@@ -1058,6 +1109,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
       equippedCosmeticId: equippedCosmeticId ?? this.equippedCosmeticId,
       remindersEnabled: remindersEnabled ?? this.remindersEnabled,
       reminderHour: reminderHour ?? this.reminderHour,
+      plusNudgeShown: plusNudgeShown ?? this.plusNudgeShown,
     );
   }
 
@@ -1100,6 +1152,9 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     if (reminderHour.present) {
       map['reminder_hour'] = Variable<int>(reminderHour.value);
     }
+    if (plusNudgeShown.present) {
+      map['plus_nudge_shown'] = Variable<bool>(plusNudgeShown.value);
+    }
     return map;
   }
 
@@ -1117,7 +1172,8 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
           ..write('isPlus: $isPlus, ')
           ..write('equippedCosmeticId: $equippedCosmeticId, ')
           ..write('remindersEnabled: $remindersEnabled, ')
-          ..write('reminderHour: $reminderHour')
+          ..write('reminderHour: $reminderHour, ')
+          ..write('plusNudgeShown: $plusNudgeShown')
           ..write(')'))
         .toString();
   }
@@ -1954,6 +2010,7 @@ typedef $$SettingsTableCreateCompanionBuilder =
       Value<String> equippedCosmeticId,
       Value<bool> remindersEnabled,
       Value<int> reminderHour,
+      Value<bool> plusNudgeShown,
     });
 typedef $$SettingsTableUpdateCompanionBuilder =
     SettingsCompanion Function({
@@ -1969,6 +2026,7 @@ typedef $$SettingsTableUpdateCompanionBuilder =
       Value<String> equippedCosmeticId,
       Value<bool> remindersEnabled,
       Value<int> reminderHour,
+      Value<bool> plusNudgeShown,
     });
 
 class $$SettingsTableFilterComposer
@@ -2037,6 +2095,11 @@ class $$SettingsTableFilterComposer
 
   ColumnFilters<int> get reminderHour => $composableBuilder(
     column: $table.reminderHour,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get plusNudgeShown => $composableBuilder(
+    column: $table.plusNudgeShown,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -2109,6 +2172,11 @@ class $$SettingsTableOrderingComposer
     column: $table.reminderHour,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get plusNudgeShown => $composableBuilder(
+    column: $table.plusNudgeShown,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$SettingsTableAnnotationComposer
@@ -2171,6 +2239,11 @@ class $$SettingsTableAnnotationComposer
     column: $table.reminderHour,
     builder: (column) => column,
   );
+
+  GeneratedColumn<bool> get plusNudgeShown => $composableBuilder(
+    column: $table.plusNudgeShown,
+    builder: (column) => column,
+  );
 }
 
 class $$SettingsTableTableManager
@@ -2213,6 +2286,7 @@ class $$SettingsTableTableManager
                 Value<String> equippedCosmeticId = const Value.absent(),
                 Value<bool> remindersEnabled = const Value.absent(),
                 Value<int> reminderHour = const Value.absent(),
+                Value<bool> plusNudgeShown = const Value.absent(),
               }) => SettingsCompanion(
                 id: id,
                 usualBaseline: usualBaseline,
@@ -2226,6 +2300,7 @@ class $$SettingsTableTableManager
                 equippedCosmeticId: equippedCosmeticId,
                 remindersEnabled: remindersEnabled,
                 reminderHour: reminderHour,
+                plusNudgeShown: plusNudgeShown,
               ),
           createCompanionCallback:
               ({
@@ -2241,6 +2316,7 @@ class $$SettingsTableTableManager
                 Value<String> equippedCosmeticId = const Value.absent(),
                 Value<bool> remindersEnabled = const Value.absent(),
                 Value<int> reminderHour = const Value.absent(),
+                Value<bool> plusNudgeShown = const Value.absent(),
               }) => SettingsCompanion.insert(
                 id: id,
                 usualBaseline: usualBaseline,
@@ -2254,6 +2330,7 @@ class $$SettingsTableTableManager
                 equippedCosmeticId: equippedCosmeticId,
                 remindersEnabled: remindersEnabled,
                 reminderHour: reminderHour,
+                plusNudgeShown: plusNudgeShown,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))

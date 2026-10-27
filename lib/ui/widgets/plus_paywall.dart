@@ -71,3 +71,77 @@ class PlusPaywallCard extends ConsumerWidget {
     );
   }
 }
+
+/// Soft, dismissible Plus pitch after the 3rd lifetime smoke log.
+Future<void> showPlusNudgeSheet(BuildContext context, WidgetRef ref) {
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (sheetContext) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
+        child: Material(
+          color: BuddyColors.cream,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(28),
+            side: const BorderSide(color: BuddyColors.ink, width: 3),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    width: 44,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: BuddyColors.ink.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  'Three smokes in. Buddy noticed.',
+                  style: Theme.of(sheetContext).textTheme.headlineSmall,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Plus unlocks the home widget (I smoked button), stats, and the whole closet — keep cutting down with a little more juice.',
+                  style: Theme.of(sheetContext).textTheme.bodyMedium,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                BoomButton(
+                  label: 'BUY PLUS',
+                  onPressed: () async {
+                    final msg =
+                        await ref.read(billingActionsProvider).buyPlus();
+                    if (!sheetContext.mounted) return;
+                    Navigator.of(sheetContext).pop();
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          msg ?? 'Purchase started — Plus unlocks when paid.',
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(sheetContext).pop(),
+                  child: const Text('not now — keep logging'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    },
+  );
+}

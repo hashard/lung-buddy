@@ -107,6 +107,12 @@ class SettingsRepository {
     );
   }
 
+  Future<void> setPlusNudgeShown(bool value) async {
+    await (_db.update(_db.settings)..where((t) => t.id.equals(1))).write(
+      SettingsCompanion(plusNudgeShown: Value(value)),
+    );
+  }
+
   Future<void> setBudgetForDate(DateTime date, int limit) async {
     await _db.into(_db.dailyBudgets).insertOnConflictUpdate(
           DailyBudgetsCompanion.insert(

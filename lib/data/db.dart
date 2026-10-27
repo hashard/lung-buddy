@@ -37,6 +37,9 @@ class Settings extends Table {
   BoolColumn get remindersEnabled =>
       boolean().withDefault(const Constant(false))();
   IntColumn get reminderHour => integer().withDefault(const Constant(20))();
+  /// Soft Plus sheet after the 3rd lifetime smoke — shown at most once.
+  BoolColumn get plusNudgeShown =>
+      boolean().withDefault(const Constant(false))();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -69,7 +72,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -86,6 +89,9 @@ class AppDatabase extends _$AppDatabase {
           if (from < 4) {
             await m.addColumn(settings, settings.remindersEnabled);
             await m.addColumn(settings, settings.reminderHour);
+          }
+          if (from < 5) {
+            await m.addColumn(settings, settings.plusNudgeShown);
           }
         },
       );

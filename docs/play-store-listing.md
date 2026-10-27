@@ -70,9 +70,10 @@ When you add analytics or accounts later, update this form and `docs/privacy-pol
 
 ## Privacy policy URL
 
-Static site lives in `privacy-site/index.html`. Deploy to Vercel as **lung-buddy-privacy** and paste the production URL into Play Console.
+**Production URL (paste into Play Console):**  
+https://lung-buddy-privacy.vercel.app
 
-Also mirrored at `docs/privacy-policy.html` / `.md`.
+Source: `privacy-site/index.html` (also mirrored at `docs/privacy-policy.html` / `.md`).
 
 ## IAP
 

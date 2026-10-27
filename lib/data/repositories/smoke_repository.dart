@@ -52,4 +52,11 @@ class SmokeRepository {
           ..orderBy([(t) => OrderingTerm.asc(t.timestamp)]))
         .get();
   }
+
+  Future<int> totalCount() async {
+    final count = countAll();
+    final query = _db.selectOnly(_db.smokeEvents)..addColumns([count]);
+    final row = await query.getSingle();
+    return row.read(count) ?? 0;
+  }
 }

@@ -60,6 +60,7 @@ class PlusActions {
     await BuddyWidgetSync.syncFromRepos(
       settingsRepo: _ref.read(settingsRepositoryProvider),
       smokeRepo: _ref.read(smokeRepositoryProvider),
+      challengeRepo: _ref.read(challengeRepositoryProvider),
     );
   }
 
@@ -86,6 +87,7 @@ class PlusActions {
     await BuddyWidgetSync.syncFromRepos(
       settingsRepo: _ref.read(settingsRepositoryProvider),
       smokeRepo: _ref.read(smokeRepositoryProvider),
+      challengeRepo: _ref.read(challengeRepositoryProvider),
     );
   }
 
@@ -104,6 +106,11 @@ class PlusActions {
     await _ref.read(settingsRepositoryProvider).setEquippedCosmetic(item.id);
     _ref.invalidate(plusStateProvider);
     _ref.invalidate(homeVmProvider);
+    await BuddyWidgetSync.syncFromRepos(
+      settingsRepo: _ref.read(settingsRepositoryProvider),
+      smokeRepo: _ref.read(smokeRepositoryProvider),
+      challengeRepo: _ref.read(challengeRepositoryProvider),
+    );
   }
 }
 

@@ -182,7 +182,8 @@ class SmokeActions {
 
   final Ref _ref;
 
-  Future<void> log() async {
+  /// Returns true when the soft Plus nudge should open (3rd lifetime smoke).
+  Future<bool> log() async {
     await _ref.read(smokeRepositoryProvider).logNow();
     _ref.invalidate(homeVmProvider);
     _ref.invalidate(weekMoneyProvider);
@@ -190,7 +191,16 @@ class SmokeActions {
     await BuddyWidgetSync.syncFromRepos(
       settingsRepo: _ref.read(settingsRepositoryProvider),
       smokeRepo: _ref.read(smokeRepositoryProvider),
+      challengeRepo: _ref.read(challengeRepositoryProvider),
     );
+
+    final settings =
+        await _ref.read(settingsRepositoryProvider).requireSettings();
+    if (settings.isPlus || settings.plusNudgeShown) return false;
+    final total = await _ref.read(smokeRepositoryProvider).totalCount();
+    if (total < 3) return false;
+    await _ref.read(settingsRepositoryProvider).setPlusNudgeShown(true);
+    return true;
   }
 
   Future<bool> undo() async {
@@ -202,6 +212,7 @@ class SmokeActions {
     await BuddyWidgetSync.syncFromRepos(
       settingsRepo: _ref.read(settingsRepositoryProvider),
       smokeRepo: _ref.read(smokeRepositoryProvider),
+      challengeRepo: _ref.read(challengeRepositoryProvider),
     );
     return ok;
   }

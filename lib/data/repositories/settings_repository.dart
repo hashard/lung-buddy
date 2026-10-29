@@ -1,6 +1,8 @@
 import 'package:drift/drift.dart';
 import 'package:intl/intl.dart';
 
+import '../../domain/cosmetic_catalog.dart';
+import '../../domain/cosmetic_loadout.dart';
 import '../../domain/day_evaluator.dart';
 import '../db.dart';
 
@@ -93,6 +95,46 @@ class SettingsRepository {
     await (_db.update(_db.settings)..where((t) => t.id.equals(1))).write(
       SettingsCompanion(equippedCosmeticId: Value(cosmeticId)),
     );
+  }
+
+  Future<CosmeticLoadout> loadout() async {
+    final s = await requireSettings();
+    await _migrateLegacyEquipIfNeeded(s);
+    final fresh = await requireSettings();
+    return CosmeticLoadout.fromSettings(
+      hatCosmeticId: fresh.hatCosmeticId,
+      eyesCosmeticId: fresh.eyesCosmeticId,
+      backCosmeticId: fresh.backCosmeticId,
+      faceCosmeticId: fresh.faceCosmeticId,
+    );
+  }
+
+  Future<void> setLoadout(CosmeticLoadout loadout) async {
+    await (_db.update(_db.settings)..where((t) => t.id.equals(1))).write(
+      SettingsCompanion(
+        hatCosmeticId: Value(loadout.hatId ?? ''),
+        eyesCosmeticId: Value(loadout.eyesId ?? ''),
+        backCosmeticId: Value(loadout.backId ?? ''),
+        faceCosmeticId: Value(loadout.faceId ?? ''),
+        equippedCosmeticId: Value(
+          loadout.ids.isEmpty ? 'none' : loadout.ids.first,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _migrateLegacyEquipIfNeeded(Setting s) async {
+    final already = s.hatCosmeticId.isNotEmpty ||
+        s.eyesCosmeticId.isNotEmpty ||
+        s.backCosmeticId.isNotEmpty ||
+        s.faceCosmeticId.isNotEmpty;
+    if (already) return;
+    final legacy = s.equippedCosmeticId;
+    if (legacy.isEmpty || legacy == 'none') return;
+    final item = CosmeticCatalog.byId(legacy);
+    if (item.slot == null) return;
+    final loadout = const CosmeticLoadout().equip(item);
+    await setLoadout(loadout);
   }
 
   Future<void> setReminders({

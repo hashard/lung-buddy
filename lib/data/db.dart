@@ -34,6 +34,14 @@ class Settings extends Table {
   BoolColumn get isPlus => boolean().withDefault(const Constant(false))();
   TextColumn get equippedCosmeticId =>
       text().withDefault(const Constant('none'))();
+  TextColumn get hatCosmeticId =>
+      text().withDefault(const Constant(''))();
+  TextColumn get eyesCosmeticId =>
+      text().withDefault(const Constant(''))();
+  TextColumn get backCosmeticId =>
+      text().withDefault(const Constant(''))();
+  TextColumn get faceCosmeticId =>
+      text().withDefault(const Constant(''))();
   BoolColumn get remindersEnabled =>
       boolean().withDefault(const Constant(false))();
   IntColumn get reminderHour => integer().withDefault(const Constant(20))();
@@ -72,7 +80,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -92,6 +100,12 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 5) {
             await m.addColumn(settings, settings.plusNudgeShown);
+          }
+          if (from < 6) {
+            await m.addColumn(settings, settings.hatCosmeticId);
+            await m.addColumn(settings, settings.eyesCosmeticId);
+            await m.addColumn(settings, settings.backCosmeticId);
+            await m.addColumn(settings, settings.faceCosmeticId);
           }
         },
       );

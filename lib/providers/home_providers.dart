@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../domain/challenge_catalog.dart';
 import '../domain/challenge_engine.dart';
 import '../domain/cosmetic_catalog.dart';
+import '../domain/cosmetic_loadout.dart';
+import '../domain/cosmetic_slot.dart';
 import '../domain/cosmetic_unlocks.dart';
 import '../domain/cost_math.dart';
 import '../domain/day_evaluator.dart';
@@ -28,7 +30,7 @@ class HomeVm {
   final int cigsPerPack;
   final double costPerCig;
   final bool isPlus;
-  final CosmeticDef cosmetic;
+  final CosmeticLoadout loadout;
 
   const HomeVm({
     required this.count,
@@ -45,8 +47,12 @@ class HomeVm {
     required this.cigsPerPack,
     required this.costPerCig,
     required this.isPlus,
-    required this.cosmetic,
+    required this.loadout,
   });
+
+  CosmeticDef get primaryCosmetic => loadout.ids.isEmpty
+      ? CosmeticCatalog.none
+      : CosmeticCatalog.byId(loadout.ids.first);
 }
 
 final homeVmProvider = FutureProvider.autoDispose<HomeVm>((ref) async {
@@ -146,15 +152,27 @@ final homeVmProvider = FutureProvider.autoDispose<HomeVm>((ref) async {
 
   final todayResult = days.last;
   final unlockedRewards = await challengeRepo.unlockedRewardIds();
-  var cosmetic = CosmeticCatalog.byId(settings.equippedCosmeticId);
-  final cosmeticOk = CosmeticUnlocks.canUse(
-    item: cosmetic,
-    isPlus: settings.isPlus,
-    bestStreak: streak.best,
-    unlockedRewardIds: unlockedRewards,
-  );
-  if (!cosmeticOk) {
-    cosmetic = CosmeticCatalog.none;
+  var loadout = await settingsRepo.loadout();
+  var cleaned = loadout;
+  var loadoutChanged = false;
+  for (final slot in CosmeticSlot.values) {
+    final id = loadout.idFor(slot);
+    if (id == null) continue;
+    final item = CosmeticCatalog.byId(id);
+    final ok = CosmeticUnlocks.canUse(
+      item: item,
+      isPlus: settings.isPlus,
+      bestStreak: streak.best,
+      unlockedRewardIds: unlockedRewards,
+    );
+    if (!ok) {
+      cleaned = cleaned.clear(slot);
+      loadoutChanged = true;
+    }
+  }
+  if (loadoutChanged) {
+    await settingsRepo.setLoadout(cleaned);
+    loadout = cleaned;
   }
   return HomeVm(
     count: count,
@@ -173,7 +191,7 @@ final homeVmProvider = FutureProvider.autoDispose<HomeVm>((ref) async {
     cigsPerPack: settings.cigsPerPack,
     costPerCig: costPerCig,
     isPlus: settings.isPlus,
-    cosmetic: cosmetic,
+    loadout: loadout,
   );
 });
 

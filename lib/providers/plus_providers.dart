@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../domain/cosmetic_catalog.dart';
+import '../domain/cosmetic_loadout.dart';
+import '../domain/cosmetic_slot.dart';
 import '../domain/cosmetic_unlocks.dart';
 import '../services/buddy_widget_sync.dart';
 import 'database_provider.dart';
@@ -8,18 +10,22 @@ import 'home_providers.dart';
 
 class PlusState {
   final bool isPlus;
-  final String equippedCosmeticId;
+  final CosmeticLoadout loadout;
   final int bestStreak;
   final Set<String> unlockedRewardIds;
 
   const PlusState({
     required this.isPlus,
-    required this.equippedCosmeticId,
+    required this.loadout,
     required this.bestStreak,
     required this.unlockedRewardIds,
   });
 
-  CosmeticDef get equipped => CosmeticCatalog.byId(equippedCosmeticId);
+  CosmeticDef get primaryCosmetic => loadout.ids.isEmpty
+      ? CosmeticCatalog.none
+      : CosmeticCatalog.byId(loadout.ids.first);
+
+  bool isEquipped(CosmeticDef item) => loadout.isEquipped(item.id);
 
   bool canUse(CosmeticDef item) => CosmeticUnlocks.canUse(
         item: item,
@@ -35,12 +41,14 @@ class PlusState {
 }
 
 final plusStateProvider = FutureProvider.autoDispose<PlusState>((ref) async {
-  final settings = await ref.watch(settingsRepositoryProvider).requireSettings();
+  final settingsRepo = ref.watch(settingsRepositoryProvider);
+  final settings = await settingsRepo.requireSettings();
+  final loadout = await settingsRepo.loadout();
   final unlocked =
       await ref.watch(challengeRepositoryProvider).unlockedRewardIds();
   return PlusState(
     isPlus: settings.isPlus,
-    equippedCosmeticId: settings.equippedCosmeticId,
+    loadout: loadout,
     bestStreak: settings.bestStreak,
     unlockedRewardIds: unlocked,
   );
@@ -65,35 +73,43 @@ class PlusActions {
   }
 
   Future<void> clearPlusPlaceholder() async {
-    final settings =
-        await _ref.read(settingsRepositoryProvider).requireSettings();
+    final settingsRepo = _ref.read(settingsRepositoryProvider);
+    final settings = await settingsRepo.requireSettings();
     final unlocked =
         await _ref.read(challengeRepositoryProvider).unlockedRewardIds();
-    final equipped = CosmeticCatalog.byId(settings.equippedCosmeticId);
-    final stillOk = CosmeticUnlocks.canUse(
-      item: equipped,
-      isPlus: false,
-      bestStreak: settings.bestStreak,
-      unlockedRewardIds: unlocked,
-    );
-    if (!stillOk) {
-      await _ref.read(settingsRepositoryProvider).setEquippedCosmetic('none');
+    var loadout = await settingsRepo.loadout();
+
+    for (final slot in CosmeticSlot.values) {
+      final id = loadout.idFor(slot);
+      if (id == null) continue;
+      final item = CosmeticCatalog.byId(id);
+      final stillOk = CosmeticUnlocks.canUse(
+        item: item,
+        isPlus: false,
+        bestStreak: settings.bestStreak,
+        unlockedRewardIds: unlocked,
+      );
+      if (!stillOk) {
+        loadout = loadout.clear(slot);
+      }
     }
-    await _ref.read(settingsRepositoryProvider).setPlus(false);
+
+    await settingsRepo.setLoadout(loadout);
+    await settingsRepo.setPlus(false);
     _ref.invalidate(plusStateProvider);
     _ref.invalidate(homeVmProvider);
     _ref.invalidate(weekMoneyProvider);
     _ref.invalidate(progressDaysProvider);
     await BuddyWidgetSync.syncFromRepos(
-      settingsRepo: _ref.read(settingsRepositoryProvider),
+      settingsRepo: settingsRepo,
       smokeRepo: _ref.read(smokeRepositoryProvider),
       challengeRepo: _ref.read(challengeRepositoryProvider),
     );
   }
 
-  Future<void> equip(CosmeticDef item) async {
-    final settings =
-        await _ref.read(settingsRepositoryProvider).requireSettings();
+  Future<void> toggleEquip(CosmeticDef item) async {
+    final settingsRepo = _ref.read(settingsRepositoryProvider);
+    final settings = await settingsRepo.requireSettings();
     final unlocked =
         await _ref.read(challengeRepositoryProvider).unlockedRewardIds();
     final ok = CosmeticUnlocks.canUse(
@@ -103,11 +119,28 @@ class PlusActions {
       unlockedRewardIds: unlocked,
     );
     if (!ok) return;
-    await _ref.read(settingsRepositoryProvider).setEquippedCosmetic(item.id);
+    final current = await settingsRepo.loadout();
+    final next = current.equip(item);
+    await settingsRepo.setLoadout(next);
     _ref.invalidate(plusStateProvider);
     _ref.invalidate(homeVmProvider);
     await BuddyWidgetSync.syncFromRepos(
-      settingsRepo: _ref.read(settingsRepositoryProvider),
+      settingsRepo: settingsRepo,
+      smokeRepo: _ref.read(smokeRepositoryProvider),
+      challengeRepo: _ref.read(challengeRepositoryProvider),
+    );
+  }
+
+  Future<void> equip(CosmeticDef item) => toggleEquip(item);
+
+  Future<void> clearSlot(CosmeticSlot slot) async {
+    final settingsRepo = _ref.read(settingsRepositoryProvider);
+    final current = await settingsRepo.loadout();
+    await settingsRepo.setLoadout(current.clear(slot));
+    _ref.invalidate(plusStateProvider);
+    _ref.invalidate(homeVmProvider);
+    await BuddyWidgetSync.syncFromRepos(
+      settingsRepo: settingsRepo,
       smokeRepo: _ref.read(smokeRepositoryProvider),
       challengeRepo: _ref.read(challengeRepositoryProvider),
     );

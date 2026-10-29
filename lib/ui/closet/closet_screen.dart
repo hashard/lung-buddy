@@ -52,7 +52,7 @@ class ClosetScreen extends ConsumerWidget {
                       painter: LungPainter(
                         smokeRatio: 0.08,
                         coughPhase: 0,
-                        cosmetic: plus.equipped,
+                        cosmetic: plus.primaryCosmetic,
                       ),
                     ),
                   ),
@@ -141,7 +141,7 @@ class _Section extends ConsumerWidget {
         const SizedBox(height: 8),
         ...items.map((item) {
           final unlocked = plus.canUse(item);
-          final equipped = plus.equippedCosmeticId == item.id;
+          final equipped = plus.isEquipped(item);
           final hint = plus.lockReason(item);
           return Padding(
             padding: const EdgeInsets.only(bottom: 10),
@@ -182,7 +182,8 @@ class _Section extends ConsumerWidget {
                       )
                     : TextButton(
                         onPressed: unlocked
-                            ? () => ref.read(plusActionsProvider).equip(item)
+                            ? () =>
+                                ref.read(plusActionsProvider).toggleEquip(item)
                             : null,
                         child: Text(unlocked ? 'WEAR' : 'LOCKED'),
                       ),

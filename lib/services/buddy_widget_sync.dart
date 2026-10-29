@@ -60,7 +60,10 @@ class BuddyWidgetSync {
         bestEver: settings.bestStreak,
       );
 
-      var cosmetic = CosmeticCatalog.byId(settings.equippedCosmeticId);
+      final loadout = await settingsRepo.loadout();
+      var cosmetic = loadout.ids.isEmpty
+          ? CosmeticCatalog.none
+          : CosmeticCatalog.byId(loadout.ids.first);
       if (challengeRepo != null) {
         final unlocked = await challengeRepo.unlockedRewardIds();
         final ok = CosmeticUnlocks.canUse(

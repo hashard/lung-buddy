@@ -52,7 +52,7 @@ class ClosetScreen extends ConsumerWidget {
                       painter: LungPainter(
                         smokeRatio: 0.08,
                         coughPhase: 0,
-                        cosmetic: plus.primaryCosmetic,
+                        loadout: plus.loadout,
                       ),
                     ),
                   ),

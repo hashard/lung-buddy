@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../domain/cosmetic_catalog.dart';
+import '../../domain/cosmetic_loadout.dart';
 import '../../theme/app_theme.dart';
 import '../home/lung_painter.dart';
 
@@ -10,14 +10,14 @@ class BuddyRender extends StatelessWidget {
     super.key,
     this.size = 160,
     this.smokeRatio = 0.08,
-    this.cosmetic = CosmeticCatalog.none,
+    this.loadout = CosmeticLoadout.empty,
     this.backgroundColor = BuddyColors.cream,
     this.showBackground = true,
   });
 
   final double size;
   final double smokeRatio;
-  final CosmeticDef cosmetic;
+  final CosmeticLoadout loadout;
   final Color backgroundColor;
   final bool showBackground;
 
@@ -29,7 +29,7 @@ class BuddyRender extends StatelessWidget {
       child: CustomPaint(
         painter: _BuddyBackdropPainter(
           smokeRatio: smokeRatio,
-          cosmetic: cosmetic,
+          loadout: loadout,
           backgroundColor: backgroundColor,
           showBackground: showBackground,
         ),
@@ -41,13 +41,13 @@ class BuddyRender extends StatelessWidget {
 class _BuddyBackdropPainter extends CustomPainter {
   _BuddyBackdropPainter({
     required this.smokeRatio,
-    required this.cosmetic,
+    required this.loadout,
     required this.backgroundColor,
     required this.showBackground,
   });
 
   final double smokeRatio;
-  final CosmeticDef cosmetic;
+  final CosmeticLoadout loadout;
   final Color backgroundColor;
   final bool showBackground;
 
@@ -65,14 +65,17 @@ class _BuddyBackdropPainter extends CustomPainter {
     LungPainter(
       smokeRatio: smokeRatio,
       coughPhase: 0,
-      cosmetic: cosmetic,
+      loadout: loadout,
     ).paint(canvas, size);
   }
 
   @override
   bool shouldRepaint(covariant _BuddyBackdropPainter oldDelegate) {
     return oldDelegate.smokeRatio != smokeRatio ||
-        oldDelegate.cosmetic.id != cosmetic.id ||
+        oldDelegate.loadout.hatId != loadout.hatId ||
+        oldDelegate.loadout.eyesId != loadout.eyesId ||
+        oldDelegate.loadout.backId != loadout.backId ||
+        oldDelegate.loadout.faceId != loadout.faceId ||
         oldDelegate.backgroundColor != backgroundColor ||
         oldDelegate.showBackground != showBackground;
   }

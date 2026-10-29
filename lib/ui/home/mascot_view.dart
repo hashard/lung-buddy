@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../../domain/cosmetic_catalog.dart';
+import '../../domain/cosmetic_loadout.dart';
 import '../../theme/app_theme.dart';
 import '../widgets/cartoon_chrome.dart';
 import 'lung_painter.dart';
@@ -15,7 +15,7 @@ class MascotView extends StatefulWidget {
     required this.count,
     required this.budget,
     this.triggerCough = false,
-    this.cosmetic = CosmeticCatalog.none,
+    this.loadout = CosmeticLoadout.empty,
   });
 
   final String name;
@@ -23,7 +23,7 @@ class MascotView extends StatefulWidget {
   final int count;
   final int budget;
   final bool triggerCough;
-  final CosmeticDef cosmetic;
+  final CosmeticLoadout loadout;
 
   @override
   State<MascotView> createState() => _MascotViewState();
@@ -148,7 +148,7 @@ class _MascotViewState extends State<MascotView>
                         smokeRatio: _ratio,
                         coughPhase: _cough.value,
                         flowPhase: _flow.value,
-                        cosmetic: widget.cosmetic,
+                        loadout: widget.loadout,
                       ),
                     ),
                     if (_showCoughLabel)

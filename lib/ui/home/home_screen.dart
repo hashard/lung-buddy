@@ -88,7 +88,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               count: vm.count,
                               budget: vm.budget,
                               triggerCough: _coughPulse,
-                              cosmetic: vm.primaryCosmetic,
+                              loadout: vm.loadout,
                             ),
                             const SizedBox(height: 8),
                             Text(

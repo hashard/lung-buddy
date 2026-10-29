@@ -9,6 +9,7 @@ import '../data/repositories/challenge_repository.dart';
 import '../data/repositories/settings_repository.dart';
 import '../data/repositories/smoke_repository.dart';
 import '../domain/cosmetic_catalog.dart';
+import '../domain/cosmetic_loadout.dart';
 import '../domain/cosmetic_unlocks.dart';
 import '../domain/day_evaluator.dart';
 import '../domain/models.dart';
@@ -60,19 +61,27 @@ class BuddyWidgetSync {
         bestEver: settings.bestStreak,
       );
 
-      final loadout = await settingsRepo.loadout();
-      var cosmetic = loadout.ids.isEmpty
-          ? CosmeticCatalog.none
-          : CosmeticCatalog.byId(loadout.ids.first);
+      var loadout = await settingsRepo.loadout();
       if (challengeRepo != null) {
         final unlocked = await challengeRepo.unlockedRewardIds();
-        final ok = CosmeticUnlocks.canUse(
-          item: cosmetic,
-          isPlus: settings.isPlus,
-          bestStreak: streak.best,
-          unlockedRewardIds: unlocked,
+        String? keep(String? id) {
+          if (id == null) return null;
+          final item = CosmeticCatalog.byId(id);
+          final ok = CosmeticUnlocks.canUse(
+            item: item,
+            isPlus: settings.isPlus,
+            bestStreak: streak.best,
+            unlockedRewardIds: unlocked,
+          );
+          return ok ? id : null;
+        }
+
+        loadout = CosmeticLoadout(
+          hatId: keep(loadout.hatId),
+          eyesId: keep(loadout.eyesId),
+          backId: keep(loadout.backId),
+          faceId: keep(loadout.faceId),
         );
-        if (!ok) cosmetic = CosmeticCatalog.none;
       }
 
       if (!settings.isPlus) {
@@ -104,7 +113,7 @@ class BuddyWidgetSync {
           BuddyRender(
             size: 180,
             smokeRatio: smokeRatio.clamp(0.0, 1.35),
-            cosmetic: cosmetic,
+            loadout: loadout,
             backgroundColor: const Color(0xFFFFE8F2),
           ),
           logicalSize: const Size(180, 180),

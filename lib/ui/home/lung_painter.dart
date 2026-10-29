@@ -3,21 +3,29 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../domain/cosmetic_catalog.dart';
+import '../../domain/cosmetic_loadout.dart';
 import '../../theme/app_theme.dart';
 
 /// Goofy sticker-book lung. [smokeRatio] 0 = candy pink, 1+ = soot monster.
+///
+/// Draw order: back → body/rim/freckles → face → eyes → hat → face props → cough.
 class LungPainter extends CustomPainter {
   LungPainter({
     required this.smokeRatio,
     required this.coughPhase,
     this.flowPhase = 0,
-    this.cosmetic = CosmeticCatalog.none,
+    this.loadout = CosmeticLoadout.empty,
   });
 
   final double smokeRatio;
   final double coughPhase;
   final double flowPhase;
-  final CosmeticDef cosmetic;
+  final CosmeticLoadout loadout;
+
+  CosmeticDef get _hat => CosmeticCatalog.byId(loadout.hatId);
+  CosmeticDef get _eyes => CosmeticCatalog.byId(loadout.eyesId);
+  CosmeticDef get _back => CosmeticCatalog.byId(loadout.backId);
+  CosmeticDef get _face => CosmeticCatalog.byId(loadout.faceId);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -49,10 +57,16 @@ class LungPainter extends CustomPainter {
     canvas.translate(-cx, -cy);
 
     final bodyPaint = Paint()..color = bodyColor;
-    final stroke = Paint()
+    final inkStroke = Paint()
       ..color = outline
       ..style = PaintingStyle.stroke
       ..strokeWidth = 5 * scale
+      ..strokeJoin = StrokeJoin.round
+      ..strokeCap = StrokeCap.round;
+    final stickerRim = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 11 * scale
       ..strokeJoin = StrokeJoin.round
       ..strokeCap = StrokeCap.round;
 
@@ -66,147 +80,194 @@ class LungPainter extends CustomPainter {
       Paint()..color = BuddyColors.ink.withValues(alpha: 0.12),
     );
 
-    // Cape / wings sit behind the body so they don't cover the face.
-    _drawBehindCosmetics(canvas, cx, cy, scale);
+    // 1. Back slot behind body
+    _drawBehindCosmetics(canvas, cx, cy, scale, _back);
 
-    // Trachea (chunky)
-    final trach = RRect.fromRectAndRadius(
-      Rect.fromCenter(
-        center: Offset(cx, cy - 58 * scale),
-        width: 28 * scale,
-        height: 34 * scale,
-      ),
-      Radius.circular(12 * scale),
-    );
-    canvas.drawRRect(trach, bodyPaint);
-    canvas.drawRRect(trach, stroke);
-
-    // Lobes — rounder, beanier
+    // Rounder bean lobes — bottom-heavy Grok silhouette
     final left = Path()
-      ..moveTo(cx - 6 * scale, cy - 36 * scale)
+      ..moveTo(cx - 4 * scale, cy - 28 * scale)
       ..cubicTo(
-        cx - 78 * scale,
-        cy - 55 * scale,
-        cx - 105 * scale,
-        cy + 8 * scale,
-        cx - 58 * scale,
-        cy + 58 * scale,
+        cx - 72 * scale,
+        cy - 62 * scale,
+        cx - 108 * scale,
+        cy + 4 * scale,
+        cx - 62 * scale,
+        cy + 62 * scale,
       )
       ..cubicTo(
-        cx - 28 * scale,
-        cy + 78 * scale,
-        cx - 8 * scale,
-        cy + 42 * scale,
-        cx - 4 * scale,
-        cy - 6 * scale,
+        cx - 30 * scale,
+        cy + 88 * scale,
+        cx - 6 * scale,
+        cy + 48 * scale,
+        cx - 2 * scale,
+        cy - 2 * scale,
       )
       ..close();
     final right = Path()
-      ..moveTo(cx + 6 * scale, cy - 36 * scale)
+      ..moveTo(cx + 4 * scale, cy - 28 * scale)
       ..cubicTo(
-        cx + 78 * scale,
-        cy - 55 * scale,
-        cx + 105 * scale,
-        cy + 8 * scale,
-        cx + 58 * scale,
-        cy + 58 * scale,
+        cx + 72 * scale,
+        cy - 62 * scale,
+        cx + 108 * scale,
+        cy + 4 * scale,
+        cx + 62 * scale,
+        cy + 62 * scale,
       )
       ..cubicTo(
-        cx + 28 * scale,
-        cy + 78 * scale,
-        cx + 8 * scale,
-        cy + 42 * scale,
-        cx + 4 * scale,
-        cy - 6 * scale,
+        cx + 30 * scale,
+        cy + 88 * scale,
+        cx + 6 * scale,
+        cy + 48 * scale,
+        cx + 2 * scale,
+        cy - 2 * scale,
       )
       ..close();
 
+    final body = Path()
+      ..addPath(left, Offset.zero)
+      ..addPath(right, Offset.zero);
+
+    // Sticker rim then ink outline, then fill
+    canvas.drawPath(body, stickerRim);
     canvas.drawPath(left, bodyPaint);
     canvas.drawPath(right, bodyPaint);
-    canvas.drawPath(left, stroke);
-    canvas.drawPath(right, stroke);
+    canvas.drawPath(left, inkStroke);
+    canvas.drawPath(right, inkStroke);
+
+    // Center cleft line
+    canvas.drawLine(
+      Offset(cx, cy - 18 * scale),
+      Offset(cx, cy + 36 * scale),
+      Paint()
+        ..color = Color.lerp(const Color(0xFFE85A9A), outline, t.clamp(0, 1))!
+            .withValues(alpha: 0.55)
+        ..strokeWidth = 3 * scale
+        ..strokeCap = StrokeCap.round,
+    );
+
+    // Freckle spots on outer mid-lobes (tint with soot)
+    final freckleBase = Color.lerp(
+      const Color(0xFFE85A9A),
+      const Color(0xFF4A3F4E),
+      t.clamp(0.0, 1.0),
+    )!;
+    final freckle = Paint()
+      ..color = freckleBase.withValues(alpha: 0.55 + 0.2 * (1 - t.clamp(0, 1)));
+    for (final spot in [
+      Offset(cx - 58 * scale, cy + 6 * scale),
+      Offset(cx - 48 * scale, cy + 22 * scale),
+      Offset(cx - 68 * scale, cy + 28 * scale),
+      Offset(cx + 58 * scale, cy + 6 * scale),
+      Offset(cx + 48 * scale, cy + 22 * scale),
+      Offset(cx + 68 * scale, cy + 28 * scale),
+    ]) {
+      final r = (2.2 + (spot.dx - cx).abs() * 0.01) * scale;
+      canvas.drawCircle(spot, r, freckle);
+    }
 
     // Belly highlight
     canvas.drawOval(
       Rect.fromCenter(
-        center: Offset(cx - 22 * scale, cy + 18 * scale),
-        width: 28 * scale,
+        center: Offset(cx - 22 * scale, cy + 22 * scale),
+        width: 30 * scale,
         height: 18 * scale,
       ),
       Paint()..color = Colors.white.withValues(alpha: 0.22 * (1 - t.clamp(0, 1))),
     );
 
-    // Neck scarf after body, before face (never a face sheet).
-    if (cosmetic.kind == CosmeticKind.scarf && !_isCapeCosmetic) {
-      _drawScarf(canvas, cx, cy, scale);
+    // Neck scarf (back-slot non-cape) after body, before face
+    if (_back.kind == CosmeticKind.scarf && !_isCape(_back)) {
+      _drawScarf(canvas, cx, cy, scale, _back);
     }
 
-    // Blush
-    final blushA = (0.45 * (1 - t.clamp(0.0, 1.0))).clamp(0.0, 0.45);
+    // 3. Base face
+    final blushA = (0.5 * (1 - t.clamp(0.0, 1.0))).clamp(0.0, 0.5);
     final blush = Paint()..color = const Color(0xFFFF4D88).withValues(alpha: blushA);
     canvas.drawOval(
       Rect.fromCenter(
-        center: Offset(cx - 48 * scale, cy + 10 * scale),
-        width: 22 * scale,
-        height: 14 * scale,
+        center: Offset(cx - 42 * scale, cy + 14 * scale),
+        width: 28 * scale,
+        height: 18 * scale,
       ),
       blush,
     );
     canvas.drawOval(
       Rect.fromCenter(
-        center: Offset(cx + 48 * scale, cy + 10 * scale),
-        width: 22 * scale,
-        height: 14 * scale,
+        center: Offset(cx + 42 * scale, cy + 14 * scale),
+        width: 28 * scale,
+        height: 18 * scale,
       ),
       blush,
     );
 
-    // Giant cartoon eyes
-    final eyeY = cy - 6 * scale;
-    final eyeR = 14 * scale;
+    final eyeY = cy - 2 * scale;
+    final eyeR = 16 * scale;
     final eyeFill = Paint()..color = Colors.white;
     final eyeStroke = Paint()
       ..color = outline
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 4 * scale;
-    canvas.drawCircle(Offset(cx - 30 * scale, eyeY), eyeR, eyeFill);
-    canvas.drawCircle(Offset(cx + 30 * scale, eyeY), eyeR, eyeFill);
-    canvas.drawCircle(Offset(cx - 30 * scale, eyeY), eyeR, eyeStroke);
-    canvas.drawCircle(Offset(cx + 30 * scale, eyeY), eyeR, eyeStroke);
+      ..strokeWidth = 4.5 * scale;
+    canvas.drawCircle(Offset(cx - 28 * scale, eyeY), eyeR, eyeFill);
+    canvas.drawCircle(Offset(cx + 28 * scale, eyeY), eyeR, eyeFill);
+    canvas.drawCircle(Offset(cx - 28 * scale, eyeY), eyeR, eyeStroke);
+    canvas.drawCircle(Offset(cx + 28 * scale, eyeY), eyeR, eyeStroke);
 
     if (t > 0.78 || (coughPhase > 0.15 && coughPhase < 0.55)) {
-      // X / dizzy eyes when rough
       final xPaint = Paint()
         ..color = outline
-        ..strokeWidth = 4 * scale
+        ..strokeWidth = 4.5 * scale
         ..strokeCap = StrokeCap.round;
-      for (final ox in [-30.0, 30.0]) {
+      for (final ox in [-28.0, 28.0]) {
         canvas.drawLine(
-          Offset(cx + (ox - 7) * scale, eyeY - 7 * scale),
-          Offset(cx + (ox + 7) * scale, eyeY + 7 * scale),
+          Offset(cx + (ox - 8) * scale, eyeY - 8 * scale),
+          Offset(cx + (ox + 8) * scale, eyeY + 8 * scale),
           xPaint,
         );
         canvas.drawLine(
-          Offset(cx + (ox + 7) * scale, eyeY - 7 * scale),
-          Offset(cx + (ox - 7) * scale, eyeY + 7 * scale),
+          Offset(cx + (ox + 8) * scale, eyeY - 8 * scale),
+          Offset(cx + (ox - 8) * scale, eyeY + 8 * scale),
           xPaint,
         );
       }
     } else {
       final pupil = Paint()..color = outline;
       final look = t > 0.5 ? 2.0 * scale : 0.0;
-      canvas.drawCircle(Offset(cx - 30 * scale + look, eyeY + 2 * scale), 6 * scale, pupil);
-      canvas.drawCircle(Offset(cx + 30 * scale + look, eyeY + 2 * scale), 6 * scale, pupil);
+      final pupilR = 7.2 * scale;
+      canvas.drawCircle(
+        Offset(cx - 28 * scale + look, eyeY + 2 * scale),
+        pupilR,
+        pupil,
+      );
+      canvas.drawCircle(
+        Offset(cx + 28 * scale + look, eyeY + 2 * scale),
+        pupilR,
+        pupil,
+      );
       final shine = Paint()..color = Colors.white;
-      canvas.drawCircle(Offset(cx - 33 * scale + look, eyeY - 2 * scale), 2.4 * scale, shine);
-      canvas.drawCircle(Offset(cx + 27 * scale + look, eyeY - 2 * scale), 2.4 * scale, shine);
+      // Big + small sparkle (top-left of each pupil)
+      canvas.drawCircle(
+        Offset(cx - 32 * scale + look, eyeY - 2 * scale),
+        3.2 * scale,
+        shine,
+      );
+      canvas.drawCircle(
+        Offset(cx - 26 * scale + look, eyeY + 3 * scale),
+        1.4 * scale,
+        shine,
+      );
+      canvas.drawCircle(
+        Offset(cx + 24 * scale + look, eyeY - 2 * scale),
+        3.2 * scale,
+        shine,
+      );
+      canvas.drawCircle(
+        Offset(cx + 30 * scale + look, eyeY + 3 * scale),
+        1.4 * scale,
+        shine,
+      );
     }
 
-    if (cosmetic.kind == CosmeticKind.glasses) {
-      _drawGlasses(canvas, cx, eyeY, scale);
-    }
-
-    // Mouth
+    // Mouth — tongue smile when healthy, flat/frown when sootier
     final mouthPaint = Paint()
       ..color = outline
       ..style = PaintingStyle.stroke
@@ -216,7 +277,7 @@ class LungPainter extends CustomPainter {
     if (coughPhase > 0.12 && coughPhase < 0.6 && t > 0.08) {
       canvas.drawOval(
         Rect.fromCenter(
-          center: Offset(cx, cy + 28 * scale),
+          center: Offset(cx, cy + 30 * scale),
           width: 22 * scale,
           height: 20 * scale,
         ),
@@ -224,35 +285,56 @@ class LungPainter extends CustomPainter {
       );
       canvas.drawOval(
         Rect.fromCenter(
-          center: Offset(cx, cy + 30 * scale),
+          center: Offset(cx, cy + 32 * scale),
           width: 12 * scale,
           height: 8 * scale,
         ),
         Paint()..color = const Color(0xFFFF6BB5),
       );
-    } else if (t < 0.28) {
+    } else if (t < 0.55) {
+      // U-smile with tongue
       final smile = Path()
         ..addArc(
           Rect.fromCenter(
-            center: Offset(cx, cy + 24 * scale),
-            width: 44 * scale,
-            height: 34 * scale,
+            center: Offset(cx, cy + 22 * scale),
+            width: 36 * scale,
+            height: 28 * scale,
           ),
-          0.12 * math.pi,
-          0.76 * math.pi,
+          0.15 * math.pi,
+          0.7 * math.pi,
         );
       canvas.drawPath(smile, mouthPaint);
-    } else if (t < 0.6) {
+      // Tiny tongue inside the smile
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: Offset(cx, cy + 34 * scale),
+          width: 10 * scale,
+          height: 7 * scale,
+        ),
+        Paint()..color = const Color(0xFFFF6BB5),
+      );
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: Offset(cx, cy + 34 * scale),
+          width: 10 * scale,
+          height: 7 * scale,
+        ),
+        Paint()
+          ..color = outline
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2 * scale,
+      );
+    } else if (t < 0.78) {
       canvas.drawLine(
-        Offset(cx - 14 * scale, cy + 28 * scale),
-        Offset(cx + 14 * scale, cy + 28 * scale),
+        Offset(cx - 14 * scale, cy + 30 * scale),
+        Offset(cx + 14 * scale, cy + 30 * scale),
         mouthPaint,
       );
     } else {
       final frown = Path()
         ..addArc(
           Rect.fromCenter(
-            center: Offset(cx, cy + 36 * scale),
+            center: Offset(cx, cy + 38 * scale),
             width: 34 * scale,
             height: 22 * scale,
           ),
@@ -262,20 +344,24 @@ class LungPainter extends CustomPainter {
       canvas.drawPath(frown, mouthPaint);
     }
 
-    // Front cosmetics after the face so they sit on top correctly.
-    if (cosmetic.id == 'mustache') {
-      _drawMustache(canvas, cx, cy, scale);
-    }
-    if (cosmetic.kind == CosmeticKind.prop &&
-        !_isBehindProp &&
-        cosmetic.id != 'mustache') {
-      _drawProp(canvas, cx, cy, scale);
-    }
-    if (cosmetic.kind == CosmeticKind.hat) {
-      _drawHat(canvas, cx, cy, scale);
+    // 4. Eyes slot glasses
+    if (_eyes.kind == CosmeticKind.glasses) {
+      _drawGlasses(canvas, cx, eyeY, scale, _eyes);
     }
 
-    // Comic cough clouds
+    // 5. Hat slot
+    if (_hat.kind == CosmeticKind.hat) {
+      _drawHat(canvas, cx, cy, scale, _hat);
+    }
+
+    // 6. Face slot (halo above hat; mustache / bandage / flower / etc.)
+    if (_face.id == 'mustache') {
+      _drawMustache(canvas, cx, cy, scale, _face);
+    } else if (_face.kind == CosmeticKind.prop && _face.id != 'angel_wings') {
+      _drawProp(canvas, cx, cy, scale, _face, hasHat: _hat.kind == CosmeticKind.hat);
+    }
+
+    // 7. Comic cough clouds
     if (coughPhase > 0.05 && coughPhase < 0.75 && t > 0.1) {
       _drawComicPuff(
         canvas,
@@ -347,30 +433,55 @@ class LungPainter extends CustomPainter {
     canvas.drawCircle(c.translate(r * 0.55, -r * 0.2), r * 0.55, stroke);
   }
 
-  void _drawHat(Canvas canvas, double cx, double cy, double scale) {
-    final fill = Paint()..color = cosmetic.accent;
+  void _drawHat(
+    Canvas canvas,
+    double cx,
+    double cy,
+    double scale,
+    CosmeticDef item,
+  ) {
+    final fill = Paint()..color = item.accent;
     final stroke = Paint()
       ..color = BuddyColors.ink
       ..style = PaintingStyle.stroke
       ..strokeWidth = 4 * scale;
-    // Trachea top is ~ cy - 75; park hats there.
-    switch (cosmetic.id) {
+    switch (item.id) {
       case 'beanie_mint':
-        final path = Path()
-          ..moveTo(cx - 30 * scale, cy - 72 * scale)
-          ..quadraticBezierTo(cx, cy - 118 * scale, cx + 30 * scale, cy - 72 * scale)
-          ..lineTo(cx + 28 * scale, cy - 64 * scale)
-          ..quadraticBezierTo(cx, cy - 70 * scale, cx - 28 * scale, cy - 64 * scale)
+        // Grok-style: ribbed cuff + dome (sits on lobes, no trachea stub)
+        final cuffFill = Paint()..color = const Color(0xFFFF8FB8);
+        final dome = Path()
+          ..moveTo(cx - 34 * scale, cy - 52 * scale)
+          ..quadraticBezierTo(cx, cy - 98 * scale, cx + 34 * scale, cy - 52 * scale)
+          ..lineTo(cx + 34 * scale, cy - 44 * scale)
+          ..quadraticBezierTo(cx, cy - 48 * scale, cx - 34 * scale, cy - 44 * scale)
           ..close();
-        canvas.drawPath(path, fill);
-        canvas.drawPath(path, stroke);
-        canvas.drawCircle(Offset(cx, cy - 114 * scale), 8 * scale, fill);
-        canvas.drawCircle(Offset(cx, cy - 114 * scale), 8 * scale, stroke);
+        canvas.drawPath(dome, fill);
+        canvas.drawPath(dome, stroke);
+        final cuff = RRect.fromRectAndRadius(
+          Rect.fromCenter(
+            center: Offset(cx, cy - 42 * scale),
+            width: 72 * scale,
+            height: 16 * scale,
+          ),
+          Radius.circular(6 * scale),
+        );
+        canvas.drawRRect(cuff, cuffFill);
+        canvas.drawRRect(cuff, stroke);
+        // Rib lines on cuff
+        for (var i = -3; i <= 3; i++) {
+          canvas.drawLine(
+            Offset(cx + i * 8 * scale, cy - 48 * scale),
+            Offset(cx + i * 8 * scale, cy - 36 * scale),
+            Paint()
+              ..color = BuddyColors.ink.withValues(alpha: 0.35)
+              ..strokeWidth = 1.5 * scale,
+          );
+        }
       case 'bow_coral':
         for (final dx in [-14.0, 14.0]) {
           canvas.drawOval(
             Rect.fromCenter(
-              center: Offset(cx + dx * scale, cy - 88 * scale),
+              center: Offset(cx + dx * scale, cy - 58 * scale),
               width: 22 * scale,
               height: 18 * scale,
             ),
@@ -378,19 +489,19 @@ class LungPainter extends CustomPainter {
           );
           canvas.drawOval(
             Rect.fromCenter(
-              center: Offset(cx + dx * scale, cy - 88 * scale),
+              center: Offset(cx + dx * scale, cy - 58 * scale),
               width: 22 * scale,
               height: 18 * scale,
             ),
             stroke,
           );
         }
-        canvas.drawCircle(Offset(cx, cy - 88 * scale), 6 * scale, fill);
-        canvas.drawCircle(Offset(cx, cy - 88 * scale), 6 * scale, stroke);
+        canvas.drawCircle(Offset(cx, cy - 58 * scale), 6 * scale, fill);
+        canvas.drawCircle(Offset(cx, cy - 58 * scale), 6 * scale, stroke);
       case 'top_hat':
         final hat = RRect.fromRectAndRadius(
           Rect.fromCenter(
-            center: Offset(cx, cy - 102 * scale),
+            center: Offset(cx, cy - 78 * scale),
             width: 34 * scale,
             height: 34 * scale,
           ),
@@ -398,7 +509,7 @@ class LungPainter extends CustomPainter {
         );
         final brim = RRect.fromRectAndRadius(
           Rect.fromCenter(
-            center: Offset(cx, cy - 80 * scale),
+            center: Offset(cx, cy - 56 * scale),
             width: 54 * scale,
             height: 10 * scale,
           ),
@@ -410,7 +521,7 @@ class LungPainter extends CustomPainter {
         canvas.drawRRect(brim, stroke);
         canvas.drawRect(
           Rect.fromCenter(
-            center: Offset(cx, cy - 92 * scale),
+            center: Offset(cx, cy - 68 * scale),
             width: 34 * scale,
             height: 7 * scale,
           ),
@@ -419,29 +530,27 @@ class LungPainter extends CustomPainter {
       case 'party_crown':
       case 'golden_crown':
         final crown = Path()
-          ..moveTo(cx - 30 * scale, cy - 76 * scale)
-          ..lineTo(cx - 20 * scale, cy - 112 * scale)
-          ..lineTo(cx - 8 * scale, cy - 84 * scale)
-          ..lineTo(cx, cy - 118 * scale)
-          ..lineTo(cx + 8 * scale, cy - 84 * scale)
-          ..lineTo(cx + 20 * scale, cy - 112 * scale)
-          ..lineTo(cx + 30 * scale, cy - 76 * scale)
+          ..moveTo(cx - 30 * scale, cy - 48 * scale)
+          ..lineTo(cx - 20 * scale, cy - 84 * scale)
+          ..lineTo(cx - 8 * scale, cy - 56 * scale)
+          ..lineTo(cx, cy - 90 * scale)
+          ..lineTo(cx + 8 * scale, cy - 56 * scale)
+          ..lineTo(cx + 20 * scale, cy - 84 * scale)
+          ..lineTo(cx + 30 * scale, cy - 48 * scale)
           ..close();
         canvas.drawPath(crown, fill);
         canvas.drawPath(crown, stroke);
-        // Jewels
         for (final ox in [-16.0, 0.0, 16.0]) {
           canvas.drawCircle(
-            Offset(cx + ox * scale, cy - 82 * scale),
+            Offset(cx + ox * scale, cy - 54 * scale),
             3.5 * scale,
             Paint()..color = BuddyColors.bubblegum,
           );
         }
       case 'couch_hat':
-        // Mini couch: seat + back + arms
         final seat = RRect.fromRectAndRadius(
           Rect.fromCenter(
-            center: Offset(cx, cy - 78 * scale),
+            center: Offset(cx, cy - 50 * scale),
             width: 58 * scale,
             height: 16 * scale,
           ),
@@ -449,7 +558,7 @@ class LungPainter extends CustomPainter {
         );
         final back = RRect.fromRectAndRadius(
           Rect.fromCenter(
-            center: Offset(cx, cy - 94 * scale),
+            center: Offset(cx, cy - 66 * scale),
             width: 50 * scale,
             height: 18 * scale,
           ),
@@ -462,7 +571,7 @@ class LungPainter extends CustomPainter {
         for (final dir in [-1.0, 1.0]) {
           final arm = RRect.fromRectAndRadius(
             Rect.fromCenter(
-              center: Offset(cx + dir * 28 * scale, cy - 84 * scale),
+              center: Offset(cx + dir * 28 * scale, cy - 56 * scale),
               width: 12 * scale,
               height: 22 * scale,
             ),
@@ -473,28 +582,27 @@ class LungPainter extends CustomPainter {
         }
       case 'pirate_bandana':
         final band = Path()
-          ..moveTo(cx - 28 * scale, cy - 78 * scale)
-          ..lineTo(cx + 28 * scale, cy - 82 * scale)
-          ..lineTo(cx + 30 * scale, cy - 68 * scale)
-          ..lineTo(cx - 26 * scale, cy - 64 * scale)
+          ..moveTo(cx - 28 * scale, cy - 50 * scale)
+          ..lineTo(cx + 28 * scale, cy - 54 * scale)
+          ..lineTo(cx + 30 * scale, cy - 40 * scale)
+          ..lineTo(cx - 26 * scale, cy - 36 * scale)
           ..close();
         canvas.drawPath(band, fill);
         canvas.drawPath(band, stroke);
-        // Knot + tails off the side
-        canvas.drawCircle(Offset(cx + 32 * scale, cy - 72 * scale), 6 * scale, fill);
-        canvas.drawCircle(Offset(cx + 32 * scale, cy - 72 * scale), 6 * scale, stroke);
+        canvas.drawCircle(Offset(cx + 32 * scale, cy - 44 * scale), 6 * scale, fill);
+        canvas.drawCircle(Offset(cx + 32 * scale, cy - 44 * scale), 6 * scale, stroke);
         final tails = Path()
-          ..moveTo(cx + 34 * scale, cy - 70 * scale)
-          ..lineTo(cx + 52 * scale, cy - 58 * scale)
-          ..lineTo(cx + 46 * scale, cy - 52 * scale)
-          ..lineTo(cx + 36 * scale, cy - 66 * scale)
+          ..moveTo(cx + 34 * scale, cy - 42 * scale)
+          ..lineTo(cx + 52 * scale, cy - 30 * scale)
+          ..lineTo(cx + 46 * scale, cy - 24 * scale)
+          ..lineTo(cx + 36 * scale, cy - 38 * scale)
           ..close();
         canvas.drawPath(tails, fill);
         canvas.drawPath(tails, stroke);
       case 'frog_hat':
         canvas.drawOval(
           Rect.fromCenter(
-            center: Offset(cx, cy - 92 * scale),
+            center: Offset(cx, cy - 64 * scale),
             width: 52 * scale,
             height: 32 * scale,
           ),
@@ -502,99 +610,103 @@ class LungPainter extends CustomPainter {
         );
         canvas.drawOval(
           Rect.fromCenter(
-            center: Offset(cx, cy - 92 * scale),
+            center: Offset(cx, cy - 64 * scale),
             width: 52 * scale,
             height: 32 * scale,
           ),
           stroke,
         );
         for (final dir in [-1.0, 1.0]) {
-          canvas.drawCircle(Offset(cx + dir * 16 * scale, cy - 108 * scale), 9 * scale, fill);
-          canvas.drawCircle(Offset(cx + dir * 16 * scale, cy - 108 * scale), 9 * scale, stroke);
+          canvas.drawCircle(Offset(cx + dir * 16 * scale, cy - 80 * scale), 9 * scale, fill);
+          canvas.drawCircle(Offset(cx + dir * 16 * scale, cy - 80 * scale), 9 * scale, stroke);
           canvas.drawCircle(
-            Offset(cx + dir * 16 * scale, cy - 108 * scale),
+            Offset(cx + dir * 16 * scale, cy - 80 * scale),
             3.5 * scale,
             Paint()..color = BuddyColors.ink,
           );
         }
       case 'sleepy_cap':
         final cap = Path()
-          ..moveTo(cx - 32 * scale, cy - 72 * scale)
-          ..quadraticBezierTo(cx - 4 * scale, cy - 118 * scale, cx + 24 * scale, cy - 86 * scale)
-          ..quadraticBezierTo(cx + 48 * scale, cy - 70 * scale, cx + 54 * scale, cy - 48 * scale)
-          ..quadraticBezierTo(cx + 40 * scale, cy - 52 * scale, cx + 28 * scale, cy - 64 * scale)
-          ..lineTo(cx - 30 * scale, cy - 62 * scale)
+          ..moveTo(cx - 32 * scale, cy - 44 * scale)
+          ..quadraticBezierTo(cx - 4 * scale, cy - 90 * scale, cx + 24 * scale, cy - 58 * scale)
+          ..quadraticBezierTo(cx + 48 * scale, cy - 42 * scale, cx + 54 * scale, cy - 20 * scale)
+          ..quadraticBezierTo(cx + 40 * scale, cy - 24 * scale, cx + 28 * scale, cy - 36 * scale)
+          ..lineTo(cx - 30 * scale, cy - 34 * scale)
           ..close();
         canvas.drawPath(cap, fill);
         canvas.drawPath(cap, stroke);
-        canvas.drawCircle(Offset(cx + 56 * scale, cy - 46 * scale), 7 * scale, fill);
-        canvas.drawCircle(Offset(cx + 56 * scale, cy - 46 * scale), 7 * scale, stroke);
+        canvas.drawCircle(Offset(cx + 56 * scale, cy - 18 * scale), 7 * scale, fill);
+        canvas.drawCircle(Offset(cx + 56 * scale, cy - 18 * scale), 7 * scale, stroke);
       default:
         break;
     }
   }
 
-  bool get _isCapeCosmetic =>
-      cosmetic.id == 'streak_cape' || cosmetic.id == 'rainbow_scarf';
+  bool _isCape(CosmeticDef item) =>
+      item.id == 'streak_cape' || item.id == 'rainbow_scarf';
 
-  bool get _isBehindProp => cosmetic.id == 'angel_wings';
-
-  void _drawBehindCosmetics(Canvas canvas, double cx, double cy, double scale) {
-    if (_isCapeCosmetic) {
-      _drawCape(canvas, cx, cy, scale);
+  void _drawBehindCosmetics(
+    Canvas canvas,
+    double cx,
+    double cy,
+    double scale,
+    CosmeticDef item,
+  ) {
+    if (_isCape(item)) {
+      _drawCape(canvas, cx, cy, scale, item);
     }
-    if (cosmetic.id == 'angel_wings') {
+    if (item.id == 'angel_wings') {
       _drawWings(canvas, cx, cy, scale);
     }
   }
 
-  /// Side cape panels only — never a sheet through the lobe cleft.
-  void _drawCape(Canvas canvas, double cx, double cy, double scale) {
+  /// Side cape panels — scalloped bottom for Grok vibe.
+  void _drawCape(
+    Canvas canvas,
+    double cx,
+    double cy,
+    double scale,
+    CosmeticDef item,
+  ) {
     final stroke = Paint()
       ..color = BuddyColors.ink
       ..style = PaintingStyle.stroke
       ..strokeWidth = 4 * scale;
 
-    final colors = cosmetic.id == 'rainbow_scarf'
+    final colors = item.id == 'rainbow_scarf'
         ? const [
             Color(0xFFFF4D6D),
             Color(0xFFFFE566),
             Color(0xFF7DFFB3),
             Color(0xFF7B5CFF),
           ]
-        : [cosmetic.accent];
+        : [item.accent];
 
-    for (final dir in [-1.0, 1.0]) {
-      final fill = Paint()
-        ..color = colors[dir < 0 ? 0 : (colors.length > 1 ? 2 : 0)];
-      // Shoulder attach, flare out and down — stays outside the body middle.
-      final panel = Path()
-        ..moveTo(cx + dir * 36 * scale, cy - 28 * scale)
-        ..quadraticBezierTo(
-          cx + dir * 78 * scale,
-          cy - 10 * scale,
-          cx + dir * 92 * scale,
-          cy + 48 * scale,
-        )
-        ..quadraticBezierTo(
-          cx + dir * 70 * scale,
-          cy + 68 * scale,
-          cx + dir * 42 * scale,
-          cy + 52 * scale,
-        )
-        ..quadraticBezierTo(
-          cx + dir * 48 * scale,
-          cy + 10 * scale,
-          cx + dir * 36 * scale,
-          cy - 28 * scale,
-        );
-      canvas.drawPath(panel, fill);
-      canvas.drawPath(panel, stroke);
+    // Connected cape body behind lobes with scalloped hem
+    final capeFill = Paint()
+      ..color = item.id == 'streak_cape'
+          ? const Color(0xFF2B2433)
+          : colors.first;
+    final cape = Path()
+      ..moveTo(cx - 48 * scale, cy - 20 * scale)
+      ..quadraticBezierTo(cx - 88 * scale, cy + 10 * scale, cx - 82 * scale, cy + 58 * scale)
+      ..quadraticBezierTo(cx - 70 * scale, cy + 70 * scale, cx - 56 * scale, cy + 58 * scale)
+      ..quadraticBezierTo(cx - 42 * scale, cy + 70 * scale, cx - 28 * scale, cy + 58 * scale)
+      ..quadraticBezierTo(cx - 14 * scale, cy + 70 * scale, cx, cy + 56 * scale)
+      ..quadraticBezierTo(cx + 14 * scale, cy + 70 * scale, cx + 28 * scale, cy + 58 * scale)
+      ..quadraticBezierTo(cx + 42 * scale, cy + 70 * scale, cx + 56 * scale, cy + 58 * scale)
+      ..quadraticBezierTo(cx + 70 * scale, cy + 70 * scale, cx + 82 * scale, cy + 58 * scale)
+      ..quadraticBezierTo(cx + 88 * scale, cy + 10 * scale, cx + 48 * scale, cy - 20 * scale)
+      ..quadraticBezierTo(cx, cy - 8 * scale, cx - 48 * scale, cy - 20 * scale)
+      ..close();
+    canvas.drawPath(cape, capeFill);
+    canvas.drawPath(cape, stroke);
 
-      if (cosmetic.id == 'rainbow_scarf') {
+    if (item.id == 'rainbow_scarf') {
+      for (final dir in [-1.0, 1.0]) {
         for (var i = 0; i < colors.length; i++) {
           canvas.drawLine(
-            Offset(cx + dir * (44 + i * 8) * scale, cy - 18 * scale),
+            Offset(cx + dir * (44 + i * 8) * scale, cy - 10 * scale),
             Offset(cx + dir * (58 + i * 10) * scale, cy + 44 * scale),
             Paint()
               ..color = colors[i]
@@ -606,7 +718,6 @@ class LungPainter extends CustomPainter {
     }
   }
 
-  /// Wings fan out past the lobes so they read as behind, not body clones.
   void _drawWings(Canvas canvas, double cx, double cy, double scale) {
     final fill = Paint()..color = const Color(0xFFFFFBFF);
     final stroke = Paint()
@@ -655,33 +766,47 @@ class LungPainter extends CustomPainter {
     }
   }
 
-  void _drawMustache(Canvas canvas, double cx, double cy, double scale) {
-    final fill = Paint()..color = cosmetic.accent;
+  void _drawMustache(
+    Canvas canvas,
+    double cx,
+    double cy,
+    double scale,
+    CosmeticDef item,
+  ) {
+    final fill = Paint()..color = item.accent;
     final stroke = Paint()
       ..color = BuddyColors.ink
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3.5 * scale;
-    // Sits under the eyes / above the smile.
     final stache = Path()
-      ..moveTo(cx - 26 * scale, cy + 12 * scale)
-      ..quadraticBezierTo(cx - 14 * scale, cy + 26 * scale, cx, cy + 14 * scale)
-      ..quadraticBezierTo(cx + 14 * scale, cy + 26 * scale, cx + 26 * scale, cy + 12 * scale)
-      ..quadraticBezierTo(cx + 10 * scale, cy + 18 * scale, cx, cy + 12 * scale)
-      ..quadraticBezierTo(cx - 10 * scale, cy + 18 * scale, cx - 26 * scale, cy + 12 * scale)
+      ..moveTo(cx - 26 * scale, cy + 14 * scale)
+      ..quadraticBezierTo(cx - 14 * scale, cy + 28 * scale, cx, cy + 16 * scale)
+      ..quadraticBezierTo(cx + 14 * scale, cy + 28 * scale, cx + 26 * scale, cy + 14 * scale)
+      ..quadraticBezierTo(cx + 10 * scale, cy + 20 * scale, cx, cy + 14 * scale)
+      ..quadraticBezierTo(cx - 10 * scale, cy + 20 * scale, cx - 26 * scale, cy + 14 * scale)
       ..close();
     canvas.drawPath(stache, fill);
     canvas.drawPath(stache, stroke);
   }
 
-  void _drawProp(Canvas canvas, double cx, double cy, double scale) {
-    final fill = Paint()..color = cosmetic.accent;
+  void _drawProp(
+    Canvas canvas,
+    double cx,
+    double cy,
+    double scale,
+    CosmeticDef item, {
+    required bool hasHat,
+  }) {
+    final fill = Paint()..color = item.accent;
     final stroke = Paint()
       ..color = BuddyColors.ink
       ..style = PaintingStyle.stroke
       ..strokeWidth = 4 * scale;
-    switch (cosmetic.id) {
+    // Float halo / antenna / horns above hat when one is equipped
+    final topLift = hasHat ? 28.0 : 0.0;
+
+    switch (item.id) {
       case 'bandage':
-        // Cheek booboo — outer right lobe, clear of the eye.
         final b = RRect.fromRectAndRadius(
           Rect.fromCenter(
             center: Offset(cx + 52 * scale, cy + 8 * scale),
@@ -703,9 +828,8 @@ class LungPainter extends CustomPainter {
           stroke,
         );
       case 'flower':
-        // Tucked beside the trachea, not floating dead-center.
         final fx = cx + 28 * scale;
-        final fy = cy - 78 * scale;
+        final fy = cy - (50 + topLift) * scale;
         for (var i = 0; i < 5; i++) {
           final a = i * 1.256;
           canvas.drawCircle(
@@ -717,48 +841,54 @@ class LungPainter extends CustomPainter {
         canvas.drawCircle(Offset(fx, fy), 5 * scale, Paint()..color = BuddyColors.lemon);
         canvas.drawCircle(Offset(fx, fy), 5 * scale, stroke);
       case 'halo':
-        final halo = Paint()
-          ..color = cosmetic.accent
+        final hy = cy - (78 + topLift) * scale;
+        final haloFill = Paint()
+          ..color = item.accent
           ..style = PaintingStyle.stroke
-          ..strokeWidth = 5 * scale;
-        canvas.drawOval(
-          Rect.fromCenter(
-            center: Offset(cx, cy - 108 * scale),
-            width: 52 * scale,
-            height: 18 * scale,
-          ),
-          halo,
+          ..strokeWidth = 6 * scale;
+        final haloRect = Rect.fromCenter(
+          center: Offset(cx, hy),
+          width: 56 * scale,
+          height: 18 * scale,
         );
-        canvas.drawOval(
-          Rect.fromCenter(
-            center: Offset(cx, cy - 108 * scale),
-            width: 52 * scale,
-            height: 18 * scale,
-          ),
-          stroke,
+        canvas.drawOval(haloRect, haloFill);
+        canvas.drawOval(haloRect, stroke);
+        // Soft highlight on left
+        canvas.drawArc(
+          haloRect.deflate(2 * scale),
+          math.pi * 0.85,
+          math.pi * 0.35,
+          false,
+          Paint()
+            ..color = Colors.white.withValues(alpha: 0.75)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 2.5 * scale
+            ..strokeCap = StrokeCap.round,
         );
       case 'antenna':
+        final ay = cy - (48 + topLift) * scale;
         canvas.drawLine(
-          Offset(cx - 8 * scale, cy - 76 * scale),
-          Offset(cx - 22 * scale, cy - 112 * scale),
+          Offset(cx - 8 * scale, ay),
+          Offset(cx - 22 * scale, ay - 36 * scale),
           stroke,
         );
         canvas.drawLine(
-          Offset(cx + 8 * scale, cy - 76 * scale),
-          Offset(cx + 22 * scale, cy - 112 * scale),
+          Offset(cx + 8 * scale, ay),
+          Offset(cx + 22 * scale, ay - 36 * scale),
           stroke,
         );
-        canvas.drawCircle(Offset(cx - 22 * scale, cy - 114 * scale), 7 * scale, fill);
-        canvas.drawCircle(Offset(cx + 22 * scale, cy - 114 * scale), 7 * scale, fill);
-        canvas.drawCircle(Offset(cx - 22 * scale, cy - 114 * scale), 7 * scale, stroke);
-        canvas.drawCircle(Offset(cx + 22 * scale, cy - 114 * scale), 7 * scale, stroke);
+        canvas.drawCircle(Offset(cx - 22 * scale, ay - 38 * scale), 7 * scale, fill);
+        canvas.drawCircle(Offset(cx + 22 * scale, ay - 38 * scale), 7 * scale, fill);
+        canvas.drawCircle(Offset(cx - 22 * scale, ay - 38 * scale), 7 * scale, stroke);
+        canvas.drawCircle(Offset(cx + 22 * scale, ay - 38 * scale), 7 * scale, stroke);
       case 'legend_horns':
       case 'devil_horns':
+        final hy = cy - (44 + topLift) * scale;
         for (final dir in [-1.0, 1.0]) {
           final horn = Path()
-            ..moveTo(cx + dir * 14 * scale, cy - 72 * scale)
-            ..lineTo(cx + dir * 28 * scale, cy - 112 * scale)
-            ..lineTo(cx + dir * 4 * scale, cy - 80 * scale)
+            ..moveTo(cx + dir * 14 * scale, hy)
+            ..lineTo(cx + dir * 28 * scale, hy - 40 * scale)
+            ..lineTo(cx + dir * 4 * scale, hy - 8 * scale)
             ..close();
           canvas.drawPath(horn, fill);
           canvas.drawPath(horn, stroke);
@@ -808,7 +938,7 @@ class LungPainter extends CustomPainter {
           Offset(cx + 70 * scale, cy - 24 * scale),
           Offset(cx - 60 * scale, cy + 40 * scale),
           Offset(cx + 62 * scale, cy + 36 * scale),
-          Offset(cx, cy - 95 * scale),
+          Offset(cx, cy - (68 + topLift) * scale),
         ]) {
           canvas.drawCircle(o, 3.5 * scale, fill);
           canvas.drawCircle(o, 3.5 * scale, stroke);
@@ -818,36 +948,40 @@ class LungPainter extends CustomPainter {
     }
   }
 
-  void _drawScarf(Canvas canvas, double cx, double cy, double scale) {
+  void _drawScarf(
+    Canvas canvas,
+    double cx,
+    double cy,
+    double scale,
+    CosmeticDef item,
+  ) {
     final stroke = Paint()
       ..color = BuddyColors.ink
       ..style = PaintingStyle.stroke
       ..strokeWidth = 4 * scale;
-    final fill = Paint()..color = cosmetic.accent;
+    final fill = Paint()..color = item.accent;
 
-    // Wrap the trachea only — stays above the eyes.
     final band = RRect.fromRectAndRadius(
       Rect.fromCenter(
-        center: Offset(cx, cy - 58 * scale),
-        width: 40 * scale,
+        center: Offset(cx, cy - 36 * scale),
+        width: 44 * scale,
         height: 16 * scale,
       ),
       Radius.circular(8 * scale),
     );
-    // Tail hangs off the right shoulder, outside the face/eye.
     final tail = Path()
-      ..moveTo(cx + 18 * scale, cy - 56 * scale)
+      ..moveTo(cx + 18 * scale, cy - 34 * scale)
       ..quadraticBezierTo(
         cx + 58 * scale,
-        cy - 30 * scale,
+        cy - 10 * scale,
         cx + 54 * scale,
-        cy + 16 * scale,
+        cy + 28 * scale,
       )
       ..quadraticBezierTo(
         cx + 44 * scale,
-        cy - 12 * scale,
+        cy + 2 * scale,
         cx + 20 * scale,
-        cy - 50 * scale,
+        cy - 28 * scale,
       )
       ..close();
     canvas.drawRRect(band, fill);
@@ -856,34 +990,40 @@ class LungPainter extends CustomPainter {
     canvas.drawPath(tail, stroke);
   }
 
-  void _drawGlasses(Canvas canvas, double cx, double eyeY, double scale) {
+  void _drawGlasses(
+    Canvas canvas,
+    double cx,
+    double eyeY,
+    double scale,
+    CosmeticDef item,
+  ) {
     final stroke = Paint()
       ..color = BuddyColors.ink
       ..style = PaintingStyle.stroke
       ..strokeWidth = 4 * scale;
-    final lens = Paint()..color = cosmetic.accent.withValues(alpha: 0.45);
+    final lens = Paint()..color = item.accent.withValues(alpha: 0.45);
 
-    if (cosmetic.id == 'monocle') {
+    if (item.id == 'monocle') {
       final r = RRect.fromRectAndRadius(
         Rect.fromCenter(
-          center: Offset(cx + 30 * scale, eyeY),
-          width: 28 * scale,
-          height: 28 * scale,
+          center: Offset(cx + 28 * scale, eyeY),
+          width: 30 * scale,
+          height: 30 * scale,
         ),
-        Radius.circular(14 * scale),
+        Radius.circular(15 * scale),
       );
       canvas.drawRRect(r, lens);
       canvas.drawRRect(r, stroke);
       canvas.drawLine(
-        Offset(cx + 44 * scale, eyeY + 10 * scale),
-        Offset(cx + 44 * scale, eyeY + 34 * scale),
+        Offset(cx + 43 * scale, eyeY + 10 * scale),
+        Offset(cx + 43 * scale, eyeY + 34 * scale),
         stroke,
       );
       return;
     }
 
-    if (cosmetic.id == 'heart_specs') {
-      for (final ox in [-30.0, 30.0]) {
+    if (item.id == 'heart_specs') {
+      for (final ox in [-28.0, 28.0]) {
         final heart = Path()
           ..moveTo(cx + ox * scale, eyeY + 12 * scale)
           ..cubicTo(
@@ -905,11 +1045,11 @@ class LungPainter extends CustomPainter {
         canvas.drawPath(heart, lens);
         canvas.drawPath(heart, stroke);
       }
-      canvas.drawLine(Offset(cx - 16 * scale, eyeY), Offset(cx + 16 * scale, eyeY), stroke);
+      canvas.drawLine(Offset(cx - 14 * scale, eyeY), Offset(cx + 14 * scale, eyeY), stroke);
       return;
     }
 
-    if (cosmetic.id == 'sun_visors') {
+    if (item.id == 'sun_visors') {
       final wrap = RRect.fromRectAndRadius(
         Rect.fromCenter(
           center: Offset(cx, eyeY - 2 * scale),
@@ -923,18 +1063,18 @@ class LungPainter extends CustomPainter {
       return;
     }
 
-    for (final ox in [-30.0, 30.0]) {
+    for (final ox in [-28.0, 28.0]) {
       final r = RRect.fromRectAndRadius(
         Rect.fromCenter(
           center: Offset(cx + ox * scale, eyeY),
-          width: 28 * scale,
-          height: 20 * scale,
+          width: 30 * scale,
+          height: 22 * scale,
         ),
-        Radius.circular(cosmetic.id == 'diamond_shades' ? 4 * scale : 6 * scale),
+        Radius.circular(item.id == 'diamond_shades' ? 4 * scale : 6 * scale),
       );
       canvas.drawRRect(r, lens);
       canvas.drawRRect(r, stroke);
-      if (cosmetic.id == 'diamond_shades') {
+      if (item.id == 'diamond_shades') {
         canvas.drawCircle(
           Offset(cx + (ox - 6) * scale, eyeY - 4 * scale),
           2.5 * scale,
@@ -943,8 +1083,8 @@ class LungPainter extends CustomPainter {
       }
     }
     canvas.drawLine(
-      Offset(cx - 16 * scale, eyeY),
-      Offset(cx + 16 * scale, eyeY),
+      Offset(cx - 14 * scale, eyeY),
+      Offset(cx + 14 * scale, eyeY),
       stroke,
     );
   }
@@ -954,6 +1094,9 @@ class LungPainter extends CustomPainter {
     return oldDelegate.smokeRatio != smokeRatio ||
         oldDelegate.coughPhase != coughPhase ||
         oldDelegate.flowPhase != flowPhase ||
-        oldDelegate.cosmetic.id != cosmetic.id;
+        oldDelegate.loadout.hatId != loadout.hatId ||
+        oldDelegate.loadout.eyesId != loadout.eyesId ||
+        oldDelegate.loadout.backId != loadout.backId ||
+        oldDelegate.loadout.faceId != loadout.faceId;
   }
 }

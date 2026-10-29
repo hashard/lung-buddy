@@ -3,7 +3,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lung_buddy/domain/cosmetic_catalog.dart';
+import 'package:lung_buddy/domain/cosmetic_loadout.dart';
 import 'package:lung_buddy/theme/app_theme.dart';
 import 'package:lung_buddy/ui/home/lung_painter.dart';
 
@@ -13,7 +13,7 @@ Future<void> _writeBuddyPng({
   required Color background,
   bool transparent = false,
   double smokeRatio = 0.08,
-  CosmeticDef cosmetic = CosmeticCatalog.none,
+  CosmeticLoadout loadout = CosmeticLoadout.empty,
 }) async {
   final recorder = ui.PictureRecorder();
   final canvas = Canvas(recorder);
@@ -24,7 +24,7 @@ Future<void> _writeBuddyPng({
   LungPainter(
     smokeRatio: smokeRatio,
     coughPhase: 0,
-    cosmetic: cosmetic,
+    loadout: loadout,
   ).paint(canvas, size);
   final picture = recorder.endRecording();
   final image = await picture.toImage(px, px);

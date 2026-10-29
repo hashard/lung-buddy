@@ -43,9 +43,32 @@ class PlusState {
 final plusStateProvider = FutureProvider.autoDispose<PlusState>((ref) async {
   final settingsRepo = ref.watch(settingsRepositoryProvider);
   final settings = await settingsRepo.requireSettings();
-  final loadout = await settingsRepo.loadout();
+  var loadout = await settingsRepo.loadout();
   final unlocked =
       await ref.watch(challengeRepositoryProvider).unlockedRewardIds();
+
+  var cleaned = loadout;
+  var loadoutChanged = false;
+  for (final slot in CosmeticSlot.values) {
+    final id = loadout.idFor(slot);
+    if (id == null) continue;
+    final item = CosmeticCatalog.byId(id);
+    final ok = CosmeticUnlocks.canUse(
+      item: item,
+      isPlus: settings.isPlus,
+      bestStreak: settings.bestStreak,
+      unlockedRewardIds: unlocked,
+    );
+    if (!ok) {
+      cleaned = cleaned.clear(slot);
+      loadoutChanged = true;
+    }
+  }
+  if (loadoutChanged) {
+    await settingsRepo.setLoadout(cleaned);
+    loadout = cleaned;
+  }
+
   return PlusState(
     isPlus: settings.isPlus,
     loadout: loadout,

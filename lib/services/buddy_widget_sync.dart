@@ -62,27 +62,27 @@ class BuddyWidgetSync {
       );
 
       var loadout = await settingsRepo.loadout();
-      if (challengeRepo != null) {
-        final unlocked = await challengeRepo.unlockedRewardIds();
-        String? keep(String? id) {
-          if (id == null) return null;
-          final item = CosmeticCatalog.byId(id);
-          final ok = CosmeticUnlocks.canUse(
-            item: item,
-            isPlus: settings.isPlus,
-            bestStreak: streak.best,
-            unlockedRewardIds: unlocked,
-          );
-          return ok ? id : null;
-        }
-
-        loadout = CosmeticLoadout(
-          hatId: keep(loadout.hatId),
-          eyesId: keep(loadout.eyesId),
-          backId: keep(loadout.backId),
-          faceId: keep(loadout.faceId),
+      final unlocked = challengeRepo != null
+          ? await challengeRepo.unlockedRewardIds()
+          : <String>{};
+      String? keep(String? id) {
+        if (id == null) return null;
+        final item = CosmeticCatalog.byId(id);
+        final ok = CosmeticUnlocks.canUse(
+          item: item,
+          isPlus: settings.isPlus,
+          bestStreak: streak.best,
+          unlockedRewardIds: unlocked,
         );
+        return ok ? id : null;
       }
+
+      loadout = CosmeticLoadout(
+        hatId: keep(loadout.hatId),
+        eyesId: keep(loadout.eyesId),
+        backId: keep(loadout.backId),
+        faceId: keep(loadout.faceId),
+      );
 
       if (!settings.isPlus) {
         await HomeWidget.saveWidgetData<String>('title', 'Lung Buddy');

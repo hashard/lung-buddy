@@ -29,6 +29,9 @@ android/upload-keystore.jks
 *.jks
 *.keystore
 
+# Brainstorm companion sessions
+.superpowers/
+
 # Flutter/Dart/Pub related
 **/doc/api/
 **/ios/Flutter/.last_build_id

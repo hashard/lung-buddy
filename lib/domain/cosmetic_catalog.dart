@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'cosmetic_slot.dart';
+
 enum CosmeticKind { none, hat, scarf, glasses, prop }
 
 enum CosmeticUnlock { starter, streak, challenge, plusExclusive }
@@ -9,6 +11,7 @@ class CosmeticDef {
   final String name;
   final String blurb;
   final CosmeticKind kind;
+  final CosmeticSlot? slot;
   final CosmeticUnlock unlock;
   final int? streakRequired;
   final Color accent;
@@ -18,6 +21,7 @@ class CosmeticDef {
     required this.name,
     required this.blurb,
     required this.kind,
+    required this.slot,
     required this.unlock,
     this.streakRequired,
     required this.accent,
@@ -30,6 +34,7 @@ class CosmeticCatalog {
     name: 'Naked lung',
     blurb: 'Starter look. Pure chaos.',
     kind: CosmeticKind.none,
+    slot: null,
     unlock: CosmeticUnlock.starter,
     accent: Color(0xFFFF8FB8),
   );
@@ -42,6 +47,7 @@ class CosmeticCatalog {
       name: 'Mint beanie',
       blurb: 'Free cozy vibes.',
       kind: CosmeticKind.hat,
+      slot: CosmeticSlot.hat,
       unlock: CosmeticUnlock.starter,
       accent: Color(0xFF7DFFB3),
     ),
@@ -50,6 +56,7 @@ class CosmeticCatalog {
       name: 'Chaos bow',
       blurb: 'Free flourish.',
       kind: CosmeticKind.hat,
+      slot: CosmeticSlot.hat,
       unlock: CosmeticUnlock.starter,
       accent: Color(0xFFFF6BB5),
     ),
@@ -59,6 +66,7 @@ class CosmeticCatalog {
       name: 'Booboo bandage',
       blurb: 'Earn with a 3-day streak.',
       kind: CosmeticKind.prop,
+      slot: CosmeticSlot.face,
       unlock: CosmeticUnlock.streak,
       streakRequired: 3,
       accent: Color(0xFFFFE566),
@@ -68,6 +76,7 @@ class CosmeticCatalog {
       name: 'Daisy of denial',
       blurb: 'Earn with a 7-day streak.',
       kind: CosmeticKind.prop,
+      slot: CosmeticSlot.face,
       unlock: CosmeticUnlock.streak,
       streakRequired: 7,
       accent: Color(0xFFFF8C42),
@@ -77,6 +86,7 @@ class CosmeticCatalog {
       name: 'Suspicious halo',
       blurb: 'Earn with a 14-day streak.',
       kind: CosmeticKind.prop,
+      slot: CosmeticSlot.face,
       unlock: CosmeticUnlock.streak,
       streakRequired: 14,
       accent: Color(0xFFFFE566),
@@ -86,6 +96,7 @@ class CosmeticCatalog {
       name: 'Alien antenna',
       blurb: 'Earn with a 21-day streak.',
       kind: CosmeticKind.prop,
+      slot: CosmeticSlot.face,
       unlock: CosmeticUnlock.streak,
       streakRequired: 21,
       accent: Color(0xFF7DFFB3),
@@ -95,6 +106,7 @@ class CosmeticCatalog {
       name: 'Party crown',
       blurb: 'Earn with a 30-day streak.',
       kind: CosmeticKind.hat,
+      slot: CosmeticSlot.hat,
       unlock: CosmeticUnlock.streak,
       streakRequired: 30,
       accent: Color(0xFFFFE566),
@@ -104,6 +116,7 @@ class CosmeticCatalog {
       name: 'Streak cape',
       blurb: 'Earn with a 45-day streak.',
       kind: CosmeticKind.scarf,
+      slot: CosmeticSlot.back,
       unlock: CosmeticUnlock.streak,
       streakRequired: 45,
       accent: Color(0xFF7B5CFF),
@@ -113,6 +126,7 @@ class CosmeticCatalog {
       name: 'Legend horns',
       blurb: 'Earn with a 60-day streak.',
       kind: CosmeticKind.prop,
+      slot: CosmeticSlot.face,
       unlock: CosmeticUnlock.streak,
       streakRequired: 60,
       accent: Color(0xFFFF4D6D),
@@ -123,6 +137,7 @@ class CosmeticCatalog {
       name: 'Tiny top hat',
       blurb: 'Quest: Two under yesterday.',
       kind: CosmeticKind.hat,
+      slot: CosmeticSlot.hat,
       unlock: CosmeticUnlock.challenge,
       accent: Color(0xFF2B2433),
     ),
@@ -131,6 +146,7 @@ class CosmeticCatalog {
       name: 'Sunset scarf',
       blurb: 'Quest: Budget boss.',
       kind: CosmeticKind.scarf,
+      slot: CosmeticSlot.back,
       unlock: CosmeticUnlock.challenge,
       accent: Color(0xFFFF8C42),
     ),
@@ -139,6 +155,7 @@ class CosmeticCatalog {
       name: 'Cool shades',
       blurb: 'Quest: Below usual.',
       kind: CosmeticKind.glasses,
+      slot: CosmeticSlot.eyes,
       unlock: CosmeticUnlock.challenge,
       accent: Color(0xFF7B5CFF),
     ),
@@ -147,6 +164,7 @@ class CosmeticCatalog {
       name: 'Sun visors',
       blurb: 'Quest: Clear mornings.',
       kind: CosmeticKind.glasses,
+      slot: CosmeticSlot.eyes,
       unlock: CosmeticUnlock.challenge,
       accent: Color(0xFFFFE566),
     ),
@@ -155,6 +173,7 @@ class CosmeticCatalog {
       name: 'Couch potato hat',
       blurb: 'Quest: Chill weekend.',
       kind: CosmeticKind.hat,
+      slot: CosmeticSlot.hat,
       unlock: CosmeticUnlock.challenge,
       accent: Color(0xFFB08968),
     ),
@@ -163,6 +182,7 @@ class CosmeticCatalog {
       name: 'Sneaky stache',
       blurb: 'Quest: Smoke-lite week.',
       kind: CosmeticKind.prop,
+      slot: CosmeticSlot.face,
       unlock: CosmeticUnlock.challenge,
       accent: Color(0xFF2B2433),
     ),
@@ -171,6 +191,7 @@ class CosmeticCatalog {
       name: 'Pirate bandana',
       blurb: 'Quest: Cut by two.',
       kind: CosmeticKind.hat,
+      slot: CosmeticSlot.hat,
       unlock: CosmeticUnlock.challenge,
       accent: Color(0xFFFF4D6D),
     ),
@@ -179,6 +200,7 @@ class CosmeticCatalog {
       name: 'Froggy hat',
       blurb: 'Quest: Midweek mercy.',
       kind: CosmeticKind.hat,
+      slot: CosmeticSlot.hat,
       unlock: CosmeticUnlock.challenge,
       accent: Color(0xFF7DFFB3),
     ),
@@ -187,6 +209,7 @@ class CosmeticCatalog {
       name: 'Sleepy cap',
       blurb: 'Quest: Night owl trim.',
       kind: CosmeticKind.hat,
+      slot: CosmeticSlot.hat,
       unlock: CosmeticUnlock.challenge,
       accent: Color(0xFF9B8CFF),
     ),
@@ -195,6 +218,7 @@ class CosmeticCatalog {
       name: 'Heart specs',
       blurb: 'Quest: Soft launch.',
       kind: CosmeticKind.glasses,
+      slot: CosmeticSlot.eyes,
       unlock: CosmeticUnlock.challenge,
       accent: Color(0xFFFF6BB5),
     ),
@@ -203,6 +227,7 @@ class CosmeticCatalog {
       name: 'Lucky leaf',
       blurb: 'Quest: Ten-day tidy.',
       kind: CosmeticKind.prop,
+      slot: CosmeticSlot.face,
       unlock: CosmeticUnlock.challenge,
       accent: Color(0xFF7DFFB3),
     ),
@@ -211,6 +236,7 @@ class CosmeticCatalog {
       name: 'Side star',
       blurb: 'Earn with a 90-day streak.',
       kind: CosmeticKind.prop,
+      slot: CosmeticSlot.face,
       unlock: CosmeticUnlock.streak,
       streakRequired: 90,
       accent: Color(0xFFFFE566),
@@ -221,6 +247,7 @@ class CosmeticCatalog {
       name: 'Golden crown',
       blurb: 'Plus exclusive bling.',
       kind: CosmeticKind.hat,
+      slot: CosmeticSlot.hat,
       unlock: CosmeticUnlock.plusExclusive,
       accent: Color(0xFFFFD166),
     ),
@@ -229,6 +256,7 @@ class CosmeticCatalog {
       name: 'Diamond shades',
       blurb: 'Plus exclusive sparkle.',
       kind: CosmeticKind.glasses,
+      slot: CosmeticSlot.eyes,
       unlock: CosmeticUnlock.plusExclusive,
       accent: Color(0xFFB8F0FF),
     ),
@@ -237,6 +265,7 @@ class CosmeticCatalog {
       name: 'Rainbow scarf',
       blurb: 'Plus exclusive drip.',
       kind: CosmeticKind.scarf,
+      slot: CosmeticSlot.back,
       unlock: CosmeticUnlock.plusExclusive,
       accent: Color(0xFFFF6BB5),
     ),
@@ -245,6 +274,7 @@ class CosmeticCatalog {
       name: 'Lil devil horns',
       blurb: 'Plus exclusive mischief.',
       kind: CosmeticKind.prop,
+      slot: CosmeticSlot.face,
       unlock: CosmeticUnlock.plusExclusive,
       accent: Color(0xFFFF4D6D),
     ),
@@ -253,6 +283,7 @@ class CosmeticCatalog {
       name: 'Angel stub wings',
       blurb: 'Plus exclusive irony.',
       kind: CosmeticKind.prop,
+      slot: CosmeticSlot.back,
       unlock: CosmeticUnlock.plusExclusive,
       accent: Color(0xFFFFFFFF),
     ),
@@ -261,6 +292,7 @@ class CosmeticCatalog {
       name: 'Fancy monocle',
       blurb: 'Plus exclusive class.',
       kind: CosmeticKind.glasses,
+      slot: CosmeticSlot.eyes,
       unlock: CosmeticUnlock.plusExclusive,
       accent: Color(0xFF2B2433),
     ),
@@ -269,6 +301,7 @@ class CosmeticCatalog {
       name: 'Sparkle aura',
       blurb: 'Plus exclusive shimmer.',
       kind: CosmeticKind.prop,
+      slot: CosmeticSlot.face,
       unlock: CosmeticUnlock.plusExclusive,
       accent: Color(0xFFFFE566),
     ),
@@ -281,6 +314,9 @@ class CosmeticCatalog {
     }
     return none;
   }
+
+  static List<CosmeticDef> itemsForSlot(CosmeticSlot slot) =>
+      items.where((c) => c.slot == slot).toList();
 
   static String unlockHint(CosmeticDef item) {
     switch (item.unlock) {
